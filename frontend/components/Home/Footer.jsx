@@ -17,15 +17,15 @@ export default function Footer() {
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-2">
                 <Mail className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span>support@sarwisi.com</span>
+                <span>arjunaadlinamartha@gmail.com</span>
               </li>
               <li className="flex items-start gap-2">
                 <Phone className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span>+62 812 3456 7890</span>
+                <span>+6285794214136</span>
               </li>
               <li className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span>Surabaya, East Java, Indonesia</span>
+                <span>Gresik, East Java, Indonesia</span>
               </li>
             </ul>
           </div>
