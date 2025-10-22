@@ -1,13 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract CreativeSupplyChainNFT is ERC721URIStorage, Ownable {
-    using Counters for Counters.Counter;
-    Counters.Counter private _tokenIds;
+contract CreativeSupplyChainNFT is 
+    Initializable,
+    ERC721URIStorageUpgradeable, 
+    OwnableUpgradeable,
+    UUPSUpgradeable 
+{
+    // Ganti CountersUpgradeable dengan uint256 biasa
+    uint256 private _tokenIds;
 
     // Struktur untuk menyimpan informasi creator dan ownership history
     struct ArtworkInfo {
@@ -23,6 +29,8 @@ contract CreativeSupplyChainNFT is ERC721URIStorage, Ownable {
         address owner;
         uint256 timestamp;
         uint256 price;
+        uint256 platformFee;
+        uint256 creatorRoyalty;
     }
 
     // Mapping tokenId ke informasi artwork
@@ -31,9 +39,16 @@ contract CreativeSupplyChainNFT is ERC721URIStorage, Ownable {
     // Mapping tokenId ke array ownership history
     mapping(uint256 => OwnershipRecord[]) public ownershipHistory;
 
-    // Platform fee (2.5%)
-    uint256 public platformFeePercentage = 250; // 250 = 2.5%
+    // Mapping untuk melacak total royalty per creator
+    mapping(address => uint256) public creatorRoyalties;
+
+    // Platform fee dan royalty - JANGAN set nilai di sini
+    uint256 public platformFeePercentage;
+    uint256 public creatorRoyaltyPercentage;
     uint256 public constant PERCENTAGE_BASE = 10000;
+
+    // Total platform fees yang terkumpul
+    uint256 public totalPlatformFees;
 
     // Events
     event ArtworkMinted(
@@ -48,7 +63,9 @@ contract CreativeSupplyChainNFT is ERC721URIStorage, Ownable {
         uint256 indexed tokenId,
         address indexed from,
         address indexed to,
-        uint256 price
+        uint256 price,
+        uint256 platformFee,
+        uint256 creatorRoyalty
     );
 
     event ArtworkListedForSale(
@@ -58,8 +75,28 @@ contract CreativeSupplyChainNFT is ERC721URIStorage, Ownable {
 
     event ArtworkUnlisted(uint256 indexed tokenId);
 
-    constructor() ERC721("Creative Supply Chain NFT", "CSCNFT") {}
+    event RoyaltyPaid(
+        uint256 indexed tokenId,
+        address indexed creator,
+        uint256 amount
+    );
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize() public initializer {
+        __ERC721_init("Creative Supply Chain NFT", "CSCNFT");
+        __ERC721URIStorage_init();
+        __Ownable_init();
+        __UUPSUpgradeable_init();
+
+        // Set nilai di sini
+        platformFeePercentage = 100; // 1%
+        creatorRoyaltyPercentage = 100; // 1%
+        _tokenIds = 0;
+    }
 
     /**
      * @dev Mint NFT baru dengan informasi creator
@@ -69,8 +106,8 @@ contract CreativeSupplyChainNFT is ERC721URIStorage, Ownable {
         string memory creatorName,
         uint256 price
     ) public returns (uint256) {
-        _tokenIds.increment();
-        uint256 newTokenId = _tokenIds.current();
+        _tokenIds++;
+        uint256 newTokenId = _tokenIds;
 
         _safeMint(msg.sender, newTokenId);
         _setTokenURI(newTokenId, tokenURI);
@@ -88,7 +125,9 @@ contract CreativeSupplyChainNFT is ERC721URIStorage, Ownable {
         ownershipHistory[newTokenId].push(OwnershipRecord({
             owner: msg.sender,
             timestamp: block.timestamp,
-            price: 0 // Mint tidak ada harga
+            price: 0,
+            platformFee: 0,
+            creatorRoyalty: 0
         }));
 
         emit ArtworkMinted(newTokenId, msg.sender, creatorName, tokenURI, price);
@@ -131,15 +170,32 @@ contract CreativeSupplyChainNFT is ERC721URIStorage, Ownable {
         address seller = ownerOf(tokenId);
         require(seller != msg.sender, "Cannot buy your own artwork");
 
-        // Hitung fee
+        // Hitung fee dan royalty
         uint256 platformFee = (msg.value * platformFeePercentage) / PERCENTAGE_BASE;
-        uint256 sellerAmount = msg.value - platformFee;
+        uint256 creatorRoyalty = 0;
+        
+        // Royalty hanya dibayarkan jika bukan penjualan pertama dari creator
+        if (seller != artwork.originalCreator) {
+            creatorRoyalty = (msg.value * creatorRoyaltyPercentage) / PERCENTAGE_BASE;
+        }
+        
+        uint256 sellerAmount = msg.value - platformFee - creatorRoyalty;
 
         // Transfer NFT
         _transfer(seller, msg.sender, tokenId);
 
         // Transfer pembayaran ke seller
         payable(seller).transfer(sellerAmount);
+
+        // Transfer royalty ke creator (jika ada)
+        if (creatorRoyalty > 0) {
+            payable(artwork.originalCreator).transfer(creatorRoyalty);
+            creatorRoyalties[artwork.originalCreator] += creatorRoyalty;
+            emit RoyaltyPaid(tokenId, artwork.originalCreator, creatorRoyalty);
+        }
+
+        // Platform fee tetap di contract
+        totalPlatformFees += platformFee;
 
         // Update status
         artwork.isForSale = false;
@@ -148,10 +204,12 @@ contract CreativeSupplyChainNFT is ERC721URIStorage, Ownable {
         ownershipHistory[tokenId].push(OwnershipRecord({
             owner: msg.sender,
             timestamp: block.timestamp,
-            price: msg.value
+            price: msg.value,
+            platformFee: platformFee,
+            creatorRoyalty: creatorRoyalty
         }));
 
-        emit ArtworkSold(tokenId, seller, msg.sender, msg.value);
+        emit ArtworkSold(tokenId, seller, msg.sender, msg.value, platformFee, creatorRoyalty);
 
         // Refund kelebihan pembayaran
         if (msg.value > artwork.currentPrice) {
@@ -199,10 +257,17 @@ contract CreativeSupplyChainNFT is ERC721URIStorage, Ownable {
     }
 
     /**
+     * @dev Dapatkan total royalty yang diterima creator
+     */
+    function getCreatorRoyalties(address creator) public view returns (uint256) {
+        return creatorRoyalties[creator];
+    }
+
+    /**
      * @dev Dapatkan jumlah total NFT yang sudah di-mint
      */
     function getTotalSupply() public view returns (uint256) {
-        return _tokenIds.current();
+        return _tokenIds;
     }
 
     /**
@@ -211,6 +276,7 @@ contract CreativeSupplyChainNFT is ERC721URIStorage, Ownable {
     function withdrawPlatformFees() public onlyOwner {
         uint256 balance = address(this).balance;
         require(balance > 0, "No fees to withdraw");
+        totalPlatformFees = 0;
         payable(owner()).transfer(balance);
     }
 
@@ -221,4 +287,19 @@ contract CreativeSupplyChainNFT is ERC721URIStorage, Ownable {
         require(newFeePercentage <= 1000, "Fee too high"); // Max 10%
         platformFeePercentage = newFeePercentage;
     }
+
+    /**
+     * @dev Update creator royalty percentage (hanya owner)
+     */
+    function updateCreatorRoyalty(uint256 newRoyaltyPercentage) public onlyOwner {
+        require(newRoyaltyPercentage <= 1000, "Royalty too high"); // Max 10%
+        creatorRoyaltyPercentage = newRoyaltyPercentage;
+    }
+
+    // Required untuk UUPS upgradeable
+    function _authorizeUpgrade(address newImplementation)
+        internal
+        onlyOwner
+        override
+    {}
 }

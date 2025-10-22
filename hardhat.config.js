@@ -1,5 +1,6 @@
 import { config as dotenvConfig } from "dotenv";
 import "@nomicfoundation/hardhat-toolbox";
+import "@openzeppelin/hardhat-upgrades";
 
 dotenvConfig();
 

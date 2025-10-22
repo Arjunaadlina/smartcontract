@@ -5,14 +5,17 @@
     "deploy:local": "hardhat run scripts/deploy.js --network localhost",
     "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia",
     "deploy:goerli": "hardhat run scripts/deploy.js --network goerli",
-    "node": "hardhat node"
+    "node": "hardhat node",
+    "deploy:upgradeable": "hardhat run scripts/deployUpgradeable.js --network sepolia",
+    "upgrade": "hardhat run scripts/upgrade.js --network sepolia"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@openzeppelin/hardhat-upgrades": "^3.9.1",
     "hardhat": "^2.26.3"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.9.3",
+    "@openzeppelin/contracts-upgradeable": "^4.9.6",
     "dotenv": "^17.2.3"
   }
 }
