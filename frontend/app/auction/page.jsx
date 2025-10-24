@@ -5,7 +5,7 @@ import { ethers } from 'ethers';
 import NFTCard from '@/components/NFTCards';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from '@/lib/contract';
 import Image from 'next/image';
-import { Gavel, RefreshCcw, Timer } from 'lucide-react';
+import { Gavel, RefreshCcw, Timer, Wallet } from 'lucide-react';
 
 const SEPOLIA_CHAIN_ID = '0xaa36a7';
 const SEPOLIA_CHAIN_ID_DECIMAL = 11155111;
@@ -13,11 +13,13 @@ const SEPOLIA_CHAIN_ID_DECIMAL = 11155111;
 export default function AuctionPage() {
   const [account, setAccount] = useState('');
   const [auctions, setAuctions] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [networkError, setNetworkError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
+  // Load auctions on mount (tanpa perlu login)
   useEffect(() => {
+    loadAuctions();
     checkWalletConnection();
     
     if (typeof window.ethereum !== 'undefined') {
@@ -36,15 +38,9 @@ export default function AuctionPage() {
     };
   }, []);
 
-  useEffect(() => {
-    if (account) {
-      loadAuctions();
-    }
-  }, [account]);
-
   // Listen to auction events
   useEffect(() => {
-    if (!account || typeof window.ethereum === 'undefined') return;
+    if (typeof window.ethereum === 'undefined') return;
 
     const setupEventListeners = async () => {
       try {
@@ -66,6 +62,11 @@ export default function AuctionPage() {
           loadAuctions();
         });
 
+        contract.on('AuctionCancelled', (tokenId) => {
+          console.log('❌ Auction Cancelled:', tokenId.toString());
+          loadAuctions();
+        });
+
         return () => {
           contract.removeAllListeners();
         };
@@ -79,7 +80,7 @@ export default function AuctionPage() {
     return () => {
       cleanup.then(cleanupFn => cleanupFn && cleanupFn());
     };
-  }, [account]);
+  }, []);
 
   const switchToSepolia = async () => {
     try {
@@ -197,14 +198,10 @@ export default function AuctionPage() {
     setRefreshing(true);
     
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      
-      const isCorrectNetwork = await checkNetwork(provider);
-      if (!isCorrectNetwork) {
-        setLoading(false);
-        setRefreshing(false);
-        return;
-      }
+      // Gunakan public RPC provider untuk read-only access
+      const provider = new ethers.JsonRpcProvider(
+        'https://eth-sepolia.g.alchemy.com/v2/jqxs4FDAjl-R22YGcIFIp'
+      );
       
       const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
       
@@ -258,29 +255,9 @@ export default function AuctionPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <main className="container mx-auto px-4 py-8">
 
-        {!account ? (
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center max-w-md">
-              <div className="text-8xl mb-6 flex items-center justify-center">
-                <Image src="/agawayan1.png" alt="Logo" width={200} height={200} />
-              </div>
-              <p className="text-gray-600 mb-8">
-                Connect your wallet to participate in NFT auctions
-              </p>
-              <button
-                onClick={connectWallet}
-                className="bg-gradient-to-r from-[#9B5DE0] to-[#4E56C0] text-white px-8 py-3 rounded-xl font-semibold hover:shadow-xl transition-all transform hover:scale-105"
-              >
-                Connect Wallet
-              </button>
-              <p className="text-xs text-gray-500 mt-4">
-                * Make sure MetaMask is connected to Sepolia Testnet
-              </p>
-            </div>
-          </div>
-        ) : loading ? (
+      <main className="container mx-auto px-4 py-8">
+        {loading ? (
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center">
               <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-[#9B5DE0] border-t-transparent mb-4"></div>
@@ -297,12 +274,21 @@ export default function AuctionPage() {
               <p className="text-gray-600 mb-8">
                 There are no active auctions at the moment. Check back later or create your own auction!
               </p>
-              <a
-                href="/profile"
-                className="inline-block bg-gradient-to-r from-[#9B5DE0] to-[#D78FEE] text-white px-8 py-3 rounded-xl font-semibold hover:shadow-xl transition-all"
-              >
-                Create Auction
-              </a>
+              {account ? (
+                <a
+                  href="/profile"
+                  className="inline-block bg-gradient-to-r from-[#9B5DE0] to-[#D78FEE] text-white px-8 py-3 rounded-xl font-semibold hover:shadow-xl transition-all"
+                >
+                  Create Auction
+                </a>
+              ) : (
+                <button
+                  onClick={connectWallet}
+                  className="inline-block bg-gradient-to-r from-[#9B5DE0] to-[#4E56C0] text-white px-8 py-3 rounded-xl font-semibold hover:shadow-xl transition-all"
+                >
+                  Connect Wallet to Create
+                </button>
+              )}
             </div>
           </div>
         ) : (
@@ -326,6 +312,7 @@ export default function AuctionPage() {
               </button>
             </div>
 
+
             {/* Auction Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {auctions.map((nft) => (
@@ -334,10 +321,10 @@ export default function AuctionPage() {
                   nft={nft}
                   currentAccount={account}
                   onUpdate={loadAuctions}
+                  onNeedLogin={connectWallet}
                 />
               ))}
             </div>
-
           </>
         )}
       </main>

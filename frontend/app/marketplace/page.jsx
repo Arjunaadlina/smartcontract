@@ -5,7 +5,7 @@ import { ethers } from 'ethers';
 import NFTCard from '@/components/NFTCards';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from '@/lib/contract';
 import Image from 'next/image';
-import { ImageIcon, RefreshCcw } from 'lucide-react';
+import { ImageIcon, RefreshCcw, Wallet } from 'lucide-react';
 
 const SEPOLIA_CHAIN_ID = '0xaa36a7';
 const SEPOLIA_CHAIN_ID_DECIMAL = 11155111;
@@ -13,12 +13,13 @@ const SEPOLIA_CHAIN_ID_DECIMAL = 11155111;
 export default function Marketplace() {
   const [account, setAccount] = useState('');
   const [nfts, setNfts] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [networkError, setNetworkError] = useState('');
-  const [selectedNFT, setSelectedNFT] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Load NFTs on mount (tanpa perlu login)
   useEffect(() => {
+    loadNFTs();
     checkWalletConnection();
     
     if (typeof window.ethereum !== 'undefined') {
@@ -43,22 +44,15 @@ export default function Marketplace() {
     };
   }, []);
 
-  useEffect(() => {
-    if (account) {
-      loadNFTs();
-    }
-  }, [account]);
-
   // Listen to smart contract events untuk real-time updates
   useEffect(() => {
-    if (!account || typeof window.ethereum === 'undefined') return;
+    if (typeof window.ethereum === 'undefined') return;
 
     const setupEventListeners = async () => {
       try {
         const provider = new ethers.BrowserProvider(window.ethereum);
         const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
 
-        // Listen untuk event listing/unlisting
         contract.on('ArtworkListedForSale', (tokenId, price) => {
           console.log('🟢 NFT Listed:', tokenId.toString());
           loadNFTs();
@@ -79,20 +73,19 @@ export default function Marketplace() {
           loadNFTs();
         });
 
-        // ✅ TAMBAHAN: Listen untuk auction events
         contract.on('AuctionCreated', (tokenId, seller, startPrice, endTime) => {
           console.log('🔨 Auction Created:', tokenId.toString());
-          loadNFTs(); // Refresh untuk remove dari marketplace
+          loadNFTs();
         });
 
         contract.on('AuctionEnded', (tokenId, winner, finalPrice) => {
           console.log('✅ Auction Ended:', tokenId.toString());
-          loadNFTs(); // Refresh setelah auction selesai
+          loadNFTs();
         });
 
         contract.on('AuctionCancelled', (tokenId) => {
           console.log('❌ Auction Cancelled:', tokenId.toString());
-          loadNFTs(); // Refresh jika auction dibatalkan
+          loadNFTs();
         });
 
         return () => {
@@ -108,7 +101,7 @@ export default function Marketplace() {
     return () => {
       cleanup.then(cleanupFn => cleanupFn && cleanupFn());
     };
-  }, [account]);
+  }, []);
 
   const switchToSepolia = async () => {
     try {
@@ -212,7 +205,6 @@ export default function Marketplace() {
         }
       } catch (error) {
         console.error('Error connecting wallet:', error);
-        alert('Gagal menghubungkan wallet');
       }
     } else {
       alert('Please install MetaMask!');
@@ -220,21 +212,16 @@ export default function Marketplace() {
   };
 
   const loadNFTs = async () => {
-    // Jangan set loading true jika ini auto-refresh
     if (!refreshing) {
       setLoading(true);
     }
     setRefreshing(true);
     
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      
-      const isCorrectNetwork = await checkNetwork(provider);
-      if (!isCorrectNetwork) {
-        setLoading(false);
-        setRefreshing(false);
-        return;
-      }
+      // Gunakan public RPC provider untuk read-only access
+      const provider = new ethers.JsonRpcProvider(
+        'https://eth-sepolia.g.alchemy.com/v2/jqxs4FDAjl-R22YGcIFIp'
+      );
       
       const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
       
@@ -248,7 +235,6 @@ export default function Marketplace() {
           const tokenURI = await contract.tokenURI(i);
           const artworkInfo = await contract.getArtworkInfo(i);
           
-          // ✅ PENGECEKAN 1: Hanya NFT yang isForSale = true
           const isForSale = artworkInfo[4];
           
           if (!isForSale) {
@@ -256,16 +242,14 @@ export default function Marketplace() {
             continue;
           }
 
-          // ✅ PENGECEKAN 2: Check apakah NFT sedang dalam auction
           const auctionInfo = await contract.getAuctionInfo(i);
-          const isInAuction = auctionInfo.active; // index 5 adalah 'active'
+          const isInAuction = auctionInfo.active;
           
           if (isInAuction) {
             console.log(`NFT #${i}: Skipped (on auction)`);
             continue;
           }
 
-          // ✅ Hanya tampilkan jika isForSale = true DAN tidak dalam auction
           console.log(`NFT #${i}: ✓ Available for direct sale`);
           
           nftList.push({
@@ -294,32 +278,13 @@ export default function Marketplace() {
 
   return (
     <div className="min-h-screen bg-white">
+
       <main className="container mx-auto px-4 py-8">
-        {!account ? (
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center max-w-md">
-              <div className="text-8xl mb-6 flex items-center justify-center">
-                <Image src="/agawayan1.png" alt="Logo" width={200} height={200} />
-              </div>
-              <p className="text-gray-600 mb-8">
-                Platform NFT marketplace dengan transparansi penuh tentang pembuat asli dan riwayat kepemilikan setiap karya seni digital.
-              </p>
-              <button
-                onClick={connectWallet}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-3 py-3 rounded-xl font-semibold hover:shadow-xl transition-all transform hover:scale-105"
-              >
-                Hubungkan Wallet untuk Memulai
-              </button>
-              <p className="text-xs text-gray-500 mt-4">
-                * Pastikan MetaMask terhubung ke Sepolia Testnet
-              </p>
-            </div>
-          </div>
-        ) : loading ? (
+        {loading ? (
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center">
               <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-purple-600 border-t-transparent mb-4"></div>
-              <p className="text-gray-600">Memuat NFT...</p>
+              <p className="text-gray-600">Loading NFTs...</p>
             </div>
           </div>
         ) : nfts.length === 0 ? (
@@ -328,19 +293,28 @@ export default function Marketplace() {
               <div className="text-8xl mb-6">
                 <ImageIcon className="mx-auto" width={100} height={100} />
               </div>
-              <h2 className="text-3xl font-bold mb-4">Belum Ada NFT Dijual</h2>
+              <h2 className="text-3xl font-bold mb-4">No NFTs For Sale</h2>
               <p className="text-gray-600 mb-8">
-                Belum ada NFT yang sedang dijual di marketplace. NFT yang sedang dalam auction tidak ditampilkan di sini.
+                There are currently no NFTs available for direct purchase. NFTs in auction are not displayed here.
               </p>
               <div className="space-y-3">
-                <a
-                  href="/profile"
-                  className="inline-block bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all"
-                >
-                  Buat NFT di Profil
-                </a>
+                {account ? (
+                  <a
+                    href="/profile"
+                    className="inline-block bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all"
+                  >
+                    Create NFT in Profile
+                  </a>
+                ) : (
+                  <button
+                    onClick={connectWallet}
+                    className="inline-block bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all"
+                  >
+                    Connect Wallet to Create
+                  </button>
+                )}
                 <div className="text-sm text-gray-500">
-                  atau lihat <a href="/auctions" className="text-purple-600 hover:underline font-semibold">NFT dalam Auction</a>
+                  or view <a href="/auctions" className="text-purple-600 hover:underline font-semibold">NFTs in Auction</a>
                 </div>
               </div>
             </div>
@@ -374,6 +348,7 @@ export default function Marketplace() {
                     nft={nft}
                     currentAccount={account}
                     onUpdate={loadNFTs}
+                    onNeedLogin={connectWallet}
                   />
                 </div>
               ))}

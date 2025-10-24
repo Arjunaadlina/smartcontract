@@ -117,7 +117,6 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
       onUpdate();
     } catch (error) {
       console.error('Error buying NFT:', error);
-      alert('Gagal membeli NFT: ' + (error.message || 'Unknown error'));
     }
     setBuying(false);
   };

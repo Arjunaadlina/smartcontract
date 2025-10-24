@@ -233,7 +233,7 @@ export default function Navbar() {
               onClick={connectWallet}
               className="text-white bg-[#4E56C0] hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center"
             >
-              Hubungkan Wallet
+              Connect Wallet
             </button>
           )}
           
@@ -287,18 +287,21 @@ export default function Navbar() {
                 Auction
               </Link>
             </li>
-            <li>
-              <Link 
-                href="/profile" 
-                className={`block py-2 px-3 md:p-0 rounded ${
-                  isActive('/profile') 
-                    ? 'text-white bg-[#4E56C0] md:bg-transparent md:text-[#4E56C0]' 
-                    : 'text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-[#4E56C0]'
-                }`}
-              >
-                Profile
-              </Link>
-            </li>
+            {/* Menu Profile hanya muncul jika wallet sudah terhubung */}
+            {account && (
+              <li>
+                <Link 
+                  href="/profile" 
+                  className={`block py-2 px-3 md:p-0 rounded ${
+                    isActive('/profile') 
+                      ? 'text-white bg-[#4E56C0] md:bg-transparent md:text-[#4E56C0]' 
+                      : 'text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-[#4E56C0]'
+                  }`}
+                >
+                  Profile
+                </Link>
+              </li>
+            )}
             
           </ul>
         </div>

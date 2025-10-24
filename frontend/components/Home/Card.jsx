@@ -34,39 +34,53 @@ export default function NFTMarketCards() {
             <p className="text-sm mt-2 opacity-90">
               Collect, trade, and mint exclusive digital assets.
             </p>
-            <button  className="mt-5 bg-white text-black px-5 py-2 rounded-full text-sm font-semibold hover:bg-gray-200 transition w-44">
+            <button className="mt-5 bg-white text-black px-5 py-2 rounded-full text-sm font-semibold hover:bg-gray-200 transition w-44">
               <Link href={"/marketplace"}>Start Exploring</Link>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Right Card */}
-      <div className="bg-[#4E56C0] h-96 rounded-2xl w-full md:w-1/2 p-8 text-white shadow-lg flex flex-col justify-center relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 border-4 border-white border-opacity-30 rounded-full translate-x-10 -translate-y-10"></div>
+      {/* Right Card with bg2.jpg */}
+      <div className="h-96 relative rounded-2xl overflow-hidden w-full md:w-1/2 shadow-lg">
+        {/* Background Image */}
+        <Image
+          src="/bg2.jpg"
+          alt="Mint NFT Background"
+          width={600}
+          height={800}
+          className="object-cover w-full h-full absolute inset-0"
+        />
+        <div className="absolute inset-0 bg-[#4E56C0]/60"></div>
 
-        <div className="absolute top-0 left-0 flex justify-between w-full px-6 py-6">
-          <button className="bg-white/70 text-gray-800 text-[12px] font-bold rounded-full px-4 py-1 w-fit mb-3">
-            Mint Your NFT
-          </button>
-        </div>
+        {/* Content */}
+        <div className="relative p-8 text-white flex flex-col justify-center h-full">
+          <div className="absolute top-0 left-0 flex justify-between w-full px-6 py-6">
+            <button className="bg-white/70 text-gray-800 text-[12px] font-bold rounded-full px-4 py-1 w-fit mb-3">
+              Mint Your NFT
+            </button>
+          </div>
 
-        <div className="mt-44">
-          <h2 className="text-2xl font-bold">Create & Sell Your NFTs</h2>
-          <p className="text-sm mt-2 opacity-90">
-            // Turn your digital art into blockchain assets.
-          </p>
+          <div className="mt-28">
+            <h2 className="text-2xl font-bold">Create & Sell Your NFTs</h2>
+            <p className="text-sm mt-2 opacity-90">
+              Turn your digital art into blockchain assets.
+            </p>
 
-          <div className="mt-6 bg-white rounded-full flex items-center justify-between p-2 w-full md:w-4/5">
-            <input
-              type="text"
-              placeholder="NFT Name"
-              className="text-gray-600 text-sm px-3 py-1 w-1/3 focus:outline-none"
-            />
-            <div className="w-px h-6 bg-gray-300"></div>
-            <Link href="/profile" className="bg-[#4E56C0] text-white text-sm px-4 py-2 rounded-full hover:bg-[#2f3dbf] transition">
-              Mint →
-            </Link>
+            <div className="mt-6 bg-white rounded-full flex items-center justify-between p-2 w-full md:w-4/5">
+              <input
+                type="text"
+                placeholder="NFT Name"
+                className="text-gray-600 text-sm px-3 py-1 w-1/3 focus:outline-none"
+              />
+              <div className="w-px h-6 bg-gray-300"></div>
+              <Link
+                href="/profile"
+                className="bg-[#4E56C0] text-white text-sm px-4 py-2 rounded-full hover:bg-[#2f3dbf] transition"
+              >
+                Mint →
+              </Link>
+            </div>
           </div>
         </div>
       </div>
