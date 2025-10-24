@@ -40,7 +40,7 @@ export default function BenefitsSection() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
         {benefits.map((item, index) => (
-          <div key={index} className="flex flex-col gap-3">
+          <div key={index} className="flex flex-col gap-3 border p-4 rounded-2xl">
             <div className="bg-[#4E56C0] text-white p-4 rounded-xl w-14 h-14 flex items-center justify-center">
               {item.icon}
             </div>
