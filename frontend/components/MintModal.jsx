@@ -32,12 +32,12 @@ export default function MintModal({ onClose, onSuccess, account }) {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
-        alert('Ukuran file maksimal 10MB');
+        alert('Maximum file size is 10MB');
         return;
       }
 
       if (!file.type.startsWith('image/')) {
-        alert('File harus berupa gambar');
+        alert('File must be an image');
         return;
       }
 
@@ -52,7 +52,7 @@ export default function MintModal({ onClose, onSuccess, account }) {
 
   const uploadImageToPinata = async (file) => {
     try {
-      setUploadProgress('Mengunggah gambar ke IPFS...');
+      setUploadProgress('Uploading image to IPFS...');
       
       const formData = new FormData();
       formData.append('file', file);
@@ -80,13 +80,13 @@ export default function MintModal({ onClose, onSuccess, account }) {
       return data.IpfsHash;
     } catch (error) {
       console.error('Error uploading to Pinata:', error);
-      throw new Error('Gagal upload gambar ke IPFS: ' + error.message);
+      throw new Error('Failed to upload image to IPFS: ' + error.message);
     }
   };
 
   const uploadMetadataToPinata = async (metadata) => {
     try {
-      setUploadProgress('Membuat metadata NFT...');
+      setUploadProgress('Creating NFT metadata...');
 
       const response = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
         method: 'POST',
@@ -107,49 +107,49 @@ export default function MintModal({ onClose, onSuccess, account }) {
       return data.IpfsHash;
     } catch (error) {
       console.error('Error uploading metadata to Pinata:', error);
-      throw new Error('Gagal upload metadata ke IPFS: ' + error.message);
+      throw new Error('Failed to upload metadata to IPFS: ' + error.message);
     }
   };
 
   const handleMint = async () => {
-    // Validasi input
+    // Input validation
     if (!title.trim()) {
-      alert('Masukkan judul karya');
+      alert('Please enter artwork title');
       return;
     }
 
     if (!creatorName.trim()) {
-      alert('Masukkan nama pembuat');
+      alert('Please enter creator name');
       return;
     }
 
     if (!imageFile) {
-      alert('Pilih gambar untuk di-mint');
+      alert('Please select an image to mint');
       return;
     }
 
     if (!price || parseFloat(price) < 0) {
-      alert('Masukkan harga yang valid (0 untuk tidak dijual)');
+      alert('Please enter a valid price (0 for not for sale)');
       return;
     }
 
     const royaltyNum = parseFloat(royaltyPercentage);
     if (isNaN(royaltyNum) || royaltyNum < 0 || royaltyNum > 20) {
-      alert('Royalty harus antara 0-20%');
+      alert('Royalty must be between 0-20%');
       return;
     }
 
     setMinting(true);
-    setUploadProgress('Memulai proses minting...');
+    setUploadProgress('Starting minting process...');
 
     try {
-      // 1. Upload gambar ke IPFS
+      // 1. Upload image to IPFS
       const imageHash = await uploadImageToPinata(imageFile);
       const imageUrl = `ipfs://${imageHash}`;
       
       console.log('Image URL:', imageUrl);
 
-      // 2. Buat metadata NFT (standar ERC721)
+      // 2. Create NFT metadata (ERC721 standard)
       const metadata = {
         name: title,
         description: description || `Original artwork "${title}" created by ${creatorName}`,
@@ -174,15 +174,15 @@ export default function MintModal({ onClose, onSuccess, account }) {
         ]
       };
 
-      // 3. Upload metadata ke IPFS
+      // 3. Upload metadata to IPFS
       const metadataHash = await uploadMetadataToPinata(metadata);
       const tokenURI = `ipfs://${metadataHash}`;
       
       console.log('Token URI:', tokenURI);
 
-      setUploadProgress('Menunggu konfirmasi transaksi...');
+      setUploadProgress('Waiting for transaction confirmation...');
 
-      // 4. Connect ke contract dan mint NFT
+      // 4. Connect to contract and mint NFT
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       
@@ -215,7 +215,7 @@ export default function MintModal({ onClose, onSuccess, account }) {
         console.log('Estimated gas:', gasEstimate.toString());
       } catch (gasError) {
         console.error('Gas estimation error:', gasError);
-        throw new Error('Estimasi gas gagal. Pastikan contract address benar dan Anda terhubung ke network yang tepat.');
+        throw new Error('Gas estimation failed. Make sure the contract address is correct and you are connected to the right network.');
       }
 
       const tx = await contract.mintArtwork(
@@ -228,14 +228,14 @@ export default function MintModal({ onClose, onSuccess, account }) {
         }
       );
 
-      setUploadProgress('Menunggu konfirmasi blockchain...');
+      setUploadProgress('Waiting for blockchain confirmation...');
       console.log('Transaction hash:', tx.hash);
 
       const receipt = await tx.wait();
       console.log('Transaction confirmed:', receipt);
 
       setUploadProgress('');
-      alert(`🎉 NFT berhasil di-mint!\n\nRoyalty: ${royaltyPercentage}%\nTransaction Hash: ${tx.hash}`);
+      alert(`🎉 NFT successfully minted!\n\nRoyalty: ${royaltyPercentage}%\nTransaction Hash: ${tx.hash}`);
       
       // Reset form
       setTitle('');
@@ -250,16 +250,16 @@ export default function MintModal({ onClose, onSuccess, account }) {
     } catch (error) {
       console.error('Error minting NFT:', error);
       
-      let errorMessage = 'Gagal mint NFT: ';
+      let errorMessage = 'Failed to mint NFT: ';
       
       if (error.message.includes('user rejected')) {
-        errorMessage = 'Transaksi dibatalkan oleh user';
+        errorMessage = 'Transaction rejected by user';
       } else if (error.message.includes('insufficient funds')) {
-        errorMessage = 'Saldo ETH tidak cukup untuk gas fee';
+        errorMessage = 'Insufficient ETH balance for gas fee';
       } else if (error.message.includes('Pinata')) {
         errorMessage = error.message;
       } else if (error.code === 'NETWORK_ERROR') {
-        errorMessage = 'Error jaringan. Pastikan Anda terhubung ke network yang benar';
+        errorMessage = 'Network error. Make sure you are connected to the correct network';
       } else {
         errorMessage += error.message || 'Unknown error';
       }
@@ -277,7 +277,7 @@ export default function MintModal({ onClose, onSuccess, account }) {
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">
-              Mint NFT Baru
+              Mint New NFT
             </h2>
             <button
               onClick={onClose}
@@ -303,7 +303,7 @@ export default function MintModal({ onClose, onSuccess, account }) {
             {/* Image Upload */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Gambar Karya Seni *
+                Artwork Image *
               </label>
               
               {imagePreview ? (
@@ -329,7 +329,7 @@ export default function MintModal({ onClose, onSuccess, account }) {
                   <div className="text-center">
                     <div className="text-5xl mb-2">🖼️</div>
                     <p className="text-sm text-gray-600">
-                      Klik untuk upload gambar
+                      Click to upload image
                     </p>
                     <p className="text-xs text-gray-400 mt-1">
                       Max 10MB (JPG, PNG, GIF)
@@ -349,13 +349,13 @@ export default function MintModal({ onClose, onSuccess, account }) {
             {/* Title */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Judul Karya *
+                Artwork Title *
               </label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Contoh: Sunset di Pantai Kuta"
+                placeholder="e.g. Sunset at Kuta Beach"
                 disabled={minting}
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
               />
@@ -364,30 +364,30 @@ export default function MintModal({ onClose, onSuccess, account }) {
             {/* Creator Name */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Nama Pembuat / Artis *
+                Creator / Artist Name *
               </label>
               <input
                 type="text"
                 value={creatorName}
                 onChange={(e) => setCreatorName(e.target.value)}
-                placeholder="Contoh: Budi Santoso"
+                placeholder="e.g. John Doe"
                 disabled={minting}
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Nama ini akan tercatat sebagai pembuat asli NFT
+                This name will be recorded as the original creator of the NFT
               </p>
             </div>
 
             {/* Description (Optional) */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Deskripsi (Opsional)
+                Description (Optional)
               </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Ceritakan tentang karya seni Anda..."
+                placeholder="Tell us about your artwork..."
                 disabled={minting}
                 rows={3}
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100 resize-none"
@@ -397,7 +397,7 @@ export default function MintModal({ onClose, onSuccess, account }) {
             {/* Price */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Harga (ETH) *
+                Price (ETH) *
               </label>
               <input
                 type="number"
@@ -410,14 +410,14 @@ export default function MintModal({ onClose, onSuccess, account }) {
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Masukkan 0 jika tidak ingin langsung dijual
+                Enter 0 if you don't want to list it for sale immediately
               </p>
             </div>
 
-            {/* Royalty Percentage - NEW */}
+            {/* Royalty Percentage */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Royalty untuk Creator (%) *
+                Creator Royalty (%) *
               </label>
               <div className="relative">
                 <input
@@ -441,7 +441,7 @@ export default function MintModal({ onClose, onSuccess, account }) {
                 </span>
               </div>
               
-              {/* Slider untuk UX lebih baik */}
+              {/* Slider for better UX */}
               <input
                 type="range"
                 min="0"
@@ -461,12 +461,12 @@ export default function MintModal({ onClose, onSuccess, account }) {
               
               <div className="mt-2 p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg">
                 <p className="text-xs text-gray-700">
-                  <strong>💰 Royalty Anda:</strong> Setiap kali NFT ini dijual ulang (secondary market), 
-                  Anda akan mendapat <span className="font-bold text-purple-600">{royaltyPercentage}%</span> dari harga jual secara otomatis!
+                  <strong>💰 Your Royalty:</strong> Every time this NFT is resold in the secondary market, 
+                  you will automatically receive <span className="font-bold text-purple-600">{royaltyPercentage}%</span> of the sale price!
                 </p>
                 {parseFloat(royaltyPercentage) > 0 && (
                   <p className="text-xs text-gray-600 mt-2">
-                    Contoh: Jika NFT dijual seharga 1 ETH, Anda dapat {(parseFloat(royaltyPercentage) / 100).toFixed(3)} ETH
+                    Example: If the NFT is sold for 1 ETH, you receive {(parseFloat(royaltyPercentage) / 100).toFixed(3)} ETH
                   </p>
                 )}
               </div>
@@ -474,12 +474,12 @@ export default function MintModal({ onClose, onSuccess, account }) {
 
             {/* Creator Address Info */}
             <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4">
-              <p className="text-xs text-gray-600 mb-1">Alamat Wallet Anda</p>
+              <p className="text-xs text-gray-600 mb-1">Your Wallet Address</p>
               <p className="text-sm font-mono text-gray-800 break-all">
                 {account.substring(0, 10)}...{account.substring(34)}
               </p>
               <p className="text-xs text-gray-500 mt-2">
-                Alamat ini akan tercatat sebagai pembuat asli NFT dan penerima royalty
+                This address will be recorded as the original creator of the NFT and royalty recipient
               </p>
             </div>
 

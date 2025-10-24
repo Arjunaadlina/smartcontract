@@ -32,7 +32,7 @@ export default function NFTMarketCards() {
               Explore Unique NFTs <br /> on the Marketplace
             </h2>
             <p className="text-sm mt-2 opacity-90">
-              // Collect, trade, and mint exclusive digital assets.
+              Collect, trade, and mint exclusive digital assets.
             </p>
             <button  className="mt-5 bg-white text-black px-5 py-2 rounded-full text-sm font-semibold hover:bg-gray-200 transition w-44">
               <Link href={"/marketplace"}>Start Exploring</Link>

@@ -219,201 +219,202 @@ export default function Profile() {
     };
 
     return (
-        <div className="min-h-screen bg-white">
+<div className="min-h-screen bg-white">
 
-            {/* Main Content */}
-            <main className="container mx-auto px-4 py-8">
-                {!account ? (
-                    <div className="flex items-center justify-center min-h-[60vh]">
-                    <div className="text-center max-w-md">
-                        <div className="text-8xl mb-6 flex items-center justify-center">
+    {/* Main Content */}
+    <main className="container mx-auto px-4 py-8">
+        {!account ? (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <div className="text-center max-w-md">
+                    <div className="text-8xl mb-6 flex items-center justify-center">
                         <Image src="/agawayan1.png" alt="Logo" width={200} height={200} />
-                        </div>
-                        <p className="text-gray-600 mb-8">
-                        Platform NFT marketplace dengan transparansi penuh tentang pembuat asli dan riwayat kepemilikan setiap karya seni digital.
-                        </p>
-                        <button
+                    </div>
+                    <p className="text-gray-600 mb-8">
+                        An NFT marketplace platform offering full transparency about the original creator
+                        and ownership history of each digital artwork.
+                    </p>
+                    <button
                         onClick={connectWallet}
                         className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-3 py-3 rounded-xl font-semibold hover:shadow-xl transition-all transform hover:scale-105"
+                    >
+                        Connect Wallet to Get Started
+                    </button>
+                    <p className="text-xs text-gray-500 mt-4">
+                        * Make sure MetaMask is connected to the Sepolia Testnet
+                    </p>
+                </div>
+            </div>
+        ) : (
+            <>
+                {/* Profile Header */}
+                <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+                    <div className="flex flex-col md:flex-row items-center gap-6">
+                        <div className="w-24 h-24 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center">
+                            <User className="w-12 h-12 text-white" />
+                        </div>
+
+                        <div className="flex-1 text-center md:text-left">
+                            <h1 className="text-3xl font-bold mb-2">My Profile</h1>
+                            <p className="text-gray-600 font-mono text-sm mb-3">{account}</p>
+                            <div className="flex items-center gap-4 justify-center md:justify-start">
+                                <div className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg">
+                                    <Wallet className="w-4 h-4 text-purple-600" />
+                                    <span className="font-semibold">
+                                        {parseFloat(balance).toFixed(4)} ETH
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg">
+                                    <ImageIcon className="w-4 h-4 text-blue-600" />
+                                    <span className="font-semibold">{myNfts.length} NFT</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => setShowMintModal(true)}
+                            className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg hover:shadow-lg transition-all font-semibold"
                         >
-                        Hubungkan Wallet untuk Memulai
+                            + Mint New NFT
                         </button>
-                        <p className="text-xs text-gray-500 mt-4">
-                        * Pastikan MetaMask terhubung ke Sepolia Testnet
-                        </p>
                     </div>
+                </div>
+
+                {/* Tabs */}
+                <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
+                    <div className="flex gap-4 border-b">
+                        <button
+                            onClick={() => setActiveTab('owned')}
+                            className={`pb-3 px-4 font-semibold transition-all ${
+                                activeTab === 'owned'
+                                    ? 'border-b-2 border-purple-600 text-purple-600'
+                                    : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                        >
+                            My NFTs ({myNfts.length})
+                        </button>
+
+                        <button
+                            onClick={() => setActiveTab('created')}
+                            className={`pb-3 px-4 font-semibold transition-all ${
+                                activeTab === 'created'
+                                    ? 'border-b-2 border-purple-600 text-purple-600'
+                                    : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                        >
+                            Created NFTs ({createdNfts.length})
+                        </button>
+                    </div>
+                </div>
+
+                {loading ? (
+                    <div className="text-center py-20">
+                        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-600 border-t-transparent"></div>
+                        <p className="mt-4 text-gray-600">Loading NFTs...</p>
                     </div>
                 ) : (
                     <>
-                        {/* Profile Header */}
-                        <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
-                            <div className="flex flex-col md:flex-row items-center gap-6">
-                                <div className="w-24 h-24 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center">
-                                    <User className="w-12 h-12 text-white" />
-                                </div>
-
-                                <div className="flex-1 text-center md:text-left">
-                                    <h1 className="text-3xl font-bold mb-2">Profil Saya</h1>
-                                    <p className="text-gray-600 font-mono text-sm mb-3">{account}</p>
-                                    <div className="flex items-center gap-4 justify-center md:justify-start">
-                                        <div className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg">
-                                            <Wallet className="w-4 h-4 text-purple-600" />
-                                            <span className="font-semibold">
-                                                {parseFloat(balance).toFixed(4)} ETH
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg">
-                                            <ImageIcon className="w-4 h-4 text-blue-600" />
-                                            <span className="font-semibold">{myNfts.length} NFT</span>
+                        {activeTab === 'owned' && (
+                            <>
+                                {myNfts.length === 0 ? (
+                                    <div className="text-center py-20">
+                                        <div className="bg-white rounded-2xl shadow-xl p-12 max-w-md mx-auto">
+                                            <div className="text-6xl mb-4">
+                                                <ImagesIcon className="mx-auto" width={100} height={100} />
+                                            </div>
+                                            <h2 className="text-2xl font-bold mb-4">No NFTs Yet</h2>
+                                            <p className="text-gray-600 mb-6">
+                                                You don’t own any NFTs yet. Mint your first NFT or buy one from the marketplace!
+                                            </p>
+                                            <div className="flex gap-3 justify-center">
+                                                <button
+                                                    onClick={() => setShowMintModal(true)}
+                                                    className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-2 rounded-lg hover:shadow-lg transition-all"
+                                                >
+                                                    Mint NFT
+                                                </button>
+                                                <Link
+                                                    href="/"
+                                                    className="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition-all"
+                                                >
+                                                    Go to Marketplace
+                                                </Link>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-
-                                <button
-                                    onClick={() => setShowMintModal(true)}
-                                    className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg hover:shadow-lg transition-all font-semibold"
-                                >
-                                    + Mint NFT Baru
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Tabs */}
-                        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
-                            <div className="flex gap-4 border-b">
-                                <button
-                                    onClick={() => setActiveTab('owned')}
-                                    className={`pb-3 px-4 font-semibold transition-all ${
-                                        activeTab === 'owned'
-                                            ? 'border-b-2 border-purple-600 text-purple-600'
-                                            : 'text-gray-500 hover:text-gray-700'
-                                    }`}
-                                >
-                                    NFT Saya ({myNfts.length})
-                                </button>
-
-                                <button
-                                    onClick={() => setActiveTab('created')}
-                                    className={`pb-3 px-4 font-semibold transition-all ${
-                                        activeTab === 'created'
-                                            ? 'border-b-2 border-purple-600 text-purple-600'
-                                            : 'text-gray-500 hover:text-gray-700'
-                                    }`}
-                                >
-                                    Karya Saya ({createdNfts.length})
-                                </button>
-                            </div>
-                        </div>
-
-                        {loading ? (
-                            <div className="text-center py-20">
-                                <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-600 border-t-transparent"></div>
-                                <p className="mt-4 text-gray-600">Memuat NFT...</p>
-                            </div>
-                        ) : (
-                            <>
-                                {activeTab === 'owned' && (
-                                    <>
-                                        {myNfts.length === 0 ? (
-                                            <div className="text-center py-20">
-                                                <div className="bg-white rounded-2xl shadow-xl p-12 max-w-md mx-auto">
-                                                    <div className="text-6xl mb-4">
-                                                        <ImagesIcon className='mx-auto' width={100} height={100}/>
-                                                    </div>
-                                                    <h2 className="text-2xl font-bold mb-4">Belum Ada NFT</h2>
-                                                    <p className="text-gray-600 mb-6">
-                                                        Anda belum memiliki NFT. Buat NFT pertama Anda atau beli dari
-                                                        marketplace!
-                                                    </p>
-                                                    <div className="flex gap-3 justify-center">
-                                                        <button
-                                                            onClick={() => setShowMintModal(true)}
-                                                            className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-2 rounded-lg hover:shadow-lg transition-all"
-                                                        >
-                                                            Mint NFT
-                                                        </button>
-                                                        <Link
-                                                            href="/"
-                                                            className="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition-all"
-                                                        >
-                                                            Ke Marketplace
-                                                        </Link>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                                {myNfts.map((nft) => (
-                                                    <NFTCard
-                                                        key={nft.tokenId}
-                                                        nft={nft}
-                                                        currentAccount={account}
-                                                        onUpdate={loadMyNFTs}
-                                                    />
-                                                ))}
-                                            </div>
-                                        )}
-                                    </>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                        {myNfts.map((nft) => (
+                                            <NFTCard
+                                                key={nft.tokenId}
+                                                nft={nft}
+                                                currentAccount={account}
+                                                onUpdate={loadMyNFTs}
+                                            />
+                                        ))}
+                                    </div>
                                 )}
+                            </>
+                        )}
 
-                                {activeTab === 'created' && (
-                                    <>
-                                        {createdNfts.length === 0 ? (
-                                            <div className="text-center py-20">
-                                                <div className="bg-white rounded-2xl shadow-xl p-12 max-w-md mx-auto">
-                                                    <div className="text-6xl mb-4">
-                                                        <ImagesIcon className='mx-auto' width={100} height={100}/>
-                                                    </div>
-                                                    <h2 className="text-2xl font-bold mb-4">Belum Ada Karya</h2>
-                                                    <p className="text-gray-600 mb-6">
-                                                        Anda belum membuat karya NFT. Mulai berkarya sekarang!
-                                                    </p>
-                                                    <button
-                                                        onClick={() => setShowMintModal(true)}
-                                                        className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-lg hover:shadow-lg transition-all"
-                                                    >
-                                                        Buat Karya Pertama
-                                                    </button>
-                                                </div>
+                        {activeTab === 'created' && (
+                            <>
+                                {createdNfts.length === 0 ? (
+                                    <div className="text-center py-20">
+                                        <div className="bg-white rounded-2xl shadow-xl p-12 max-w-md mx-auto">
+                                            <div className="text-6xl mb-4">
+                                                <ImagesIcon className="mx-auto" width={100} height={100} />
                                             </div>
-                                        ) : (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                                {createdNfts.map((nft) => (
-                                                    <div key={nft.tokenId} className="relative">
-                                                        <NFTCard
-                                                            nft={nft}
-                                                            currentAccount={account}
-                                                            onUpdate={loadMyNFTs}
-                                                        />
-                                                        {nft.originalCreator.toLowerCase() ===
-                                                            account.toLowerCase() && (
-                                                            <div className="absolute top-2 right-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs px-4 py-2 rounded-full font-semibold shadow-lg">
-                                                                Creator
-                                                            </div>
-                                                        )}
+                                            <h2 className="text-2xl font-bold mb-4">No Creations Yet</h2>
+                                            <p className="text-gray-600 mb-6">
+                                                You haven’t created any NFTs yet. Start creating now!
+                                            </p>
+                                            <button
+                                                onClick={() => setShowMintModal(true)}
+                                                className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-lg hover:shadow-lg transition-all"
+                                            >
+                                                Create Your First NFT
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                        {createdNfts.map((nft) => (
+                                            <div key={nft.tokenId} className="relative">
+                                                <NFTCard
+                                                    nft={nft}
+                                                    currentAccount={account}
+                                                    onUpdate={loadMyNFTs}
+                                                />
+                                                {nft.originalCreator.toLowerCase() ===
+                                                    account.toLowerCase() && (
+                                                    <div className="absolute top-2 right-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs px-4 py-2 rounded-full font-semibold shadow-lg">
+                                                        Creator
                                                     </div>
-                                                ))}
+                                                )}
                                             </div>
-                                        )}
-                                    </>
+                                        ))}
+                                    </div>
                                 )}
                             </>
                         )}
                     </>
                 )}
-            </main>
+            </>
+        )}
+    </main>
 
-            {/* Mint Modal */}
-            {showMintModal && (
-                <MintModal
-                    onClose={() => setShowMintModal(false)}
-                    onSuccess={() => {
-                        setShowMintModal(false);
-                        loadMyNFTs();
-                    }}
-                    account={account}
-                />
-            )}
-        </div>
+    {/* Mint Modal */}
+    {showMintModal && (
+        <MintModal
+            onClose={() => setShowMintModal(false)}
+            onSuccess={() => {
+                setShowMintModal(false);
+                loadMyNFTs();
+            }}
+            account={account}
+        />
+    )}
+</div>
+
     );
 }

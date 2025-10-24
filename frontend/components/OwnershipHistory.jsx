@@ -2,13 +2,22 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { ethers } from 'ethers';
-import { CONTRACT_ADDRESS, CONTRACT_ABI } from '@/lib/contract';
 import { X, Briefcase, Palette, User, Package, Calendar, TrendingUp, DollarSign } from 'lucide-react';
+
+// Mock contract address and ABI - replace with your actual contract
+const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0x...';
+const CONTRACT_ABI = [
+  "function getArtworkInfo(uint256 tokenId) public view returns (address, string memory)",
+  "function tokenRoyaltyPercentage(uint256) public view returns (uint256)",
+  "function getOwnershipHistory(uint256 tokenId) public view returns (tuple(address owner, uint256 timestamp, uint256 price, uint256 platformFee, uint256 creatorRoyalty)[])"
+];
 
 export default function OwnershipHistory({ tokenId, onClose }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [artworkInfo, setArtworkInfo] = useState(null);
+  const [royaltyPercentage, setRoyaltyPercentage] = useState(0);
+  const [hasCustomRoyalty, setHasCustomRoyalty] = useState(false);
   const [totalStats, setTotalStats] = useState({
     totalPlatformFees: 0,
     totalCreatorRoyalties: 0,
@@ -47,6 +56,27 @@ export default function OwnershipHistory({ tokenId, onClose }) {
         creatorName: info[1]
       });
 
+      // Load royalty percentage (check if function exists for newer contracts)
+      try {
+        const royaltyBasisPoints = await contract.tokenRoyaltyPercentage(tokenId);
+        const royaltyPercent = Number(royaltyBasisPoints) / 100; // Convert basis points to percentage
+        
+        // If royalty is greater than 0, it means this NFT has custom royalty
+        if (royaltyPercent > 0) {
+          setRoyaltyPercentage(royaltyPercent);
+          setHasCustomRoyalty(true);
+        } else {
+          // Old contract or no custom royalty set - default 1%
+          setRoyaltyPercentage(1);
+          setHasCustomRoyalty(false);
+        }
+      } catch (error) {
+        // Function doesn't exist (old contract) - default 1%
+        console.log('tokenRoyaltyPercentage not available, using default 1%');
+        setRoyaltyPercentage(1);
+        setHasCustomRoyalty(false);
+      }
+
       // Load ownership history
       const historyData = await contract.getOwnershipHistory(tokenId);
       
@@ -58,7 +88,7 @@ export default function OwnershipHistory({ tokenId, onClose }) {
         creatorRoyalty: ethers.formatEther(record.creatorRoyalty)
       }));
 
-      // Filter: Gabungkan address yang sama berturut-turut, ambil yang tertua
+      // Filter: Combine consecutive same addresses, keep the oldest
       const filteredRecords = [];
       for (let i = 0; i < records.length; i++) {
         const currentRecord = records[i];
@@ -98,7 +128,7 @@ export default function OwnershipHistory({ tokenId, onClose }) {
   };
 
   const formatDate = (timestamp) => {
-    return new Date(timestamp * 1000).toLocaleString('id-ID', {
+    return new Date(timestamp * 1000).toLocaleString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -118,7 +148,7 @@ export default function OwnershipHistory({ tokenId, onClose }) {
           {/* Header */}
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-[#4E56C0]">
-              Riwayat Kepemilikan NFT #{tokenId}
+              NFT #{tokenId} Ownership History
             </h2>
             <button
               onClick={onClose}
@@ -131,11 +161,11 @@ export default function OwnershipHistory({ tokenId, onClose }) {
           {loading ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-[#9B5DE0] border-t-transparent"></div>
-              <p className="mt-4 text-gray-600">Memuat riwayat...</p>
+              <p className="mt-4 text-gray-600">Loading history...</p>
             </div>
           ) : history.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-500">Tidak ada riwayat</p>
+              <p className="text-gray-500">No history available</p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -145,19 +175,26 @@ export default function OwnershipHistory({ tokenId, onClose }) {
                 <div className="bg-[#9B5DE0] rounded-xl p-4 text-white shadow-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <Briefcase size={24} />
-                    <h3 className="font-semibold text-sm">Total Platform Fee (Admin)</h3>
+                    <h3 className="font-semibold text-sm">Total Platform Fee</h3>
                   </div>
                   <p className="text-3xl font-bold">{formatEth(totalStats.totalPlatformFees)} ETH</p>
-                  <p className="text-xs opacity-90 mt-1">Fee 1% dari setiap transaksi</p>
+                  <p className="text-xs opacity-90 mt-1">1% fee from each transaction</p>
                 </div>
 
                 {/* Creator Royalties */}
                 <div className="bg-[#D78FEE] rounded-xl p-4 text-white shadow-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <Palette size={24} />
-                    <h3 className="font-semibold text-sm">Total Royalty Creator</h3>
+                    <h3 className="font-semibold text-sm">
+                      Total Creator Royalty {hasCustomRoyalty && `(${royaltyPercentage}%)`}
+                    </h3>
                   </div>
                   <p className="text-3xl font-bold">{formatEth(totalStats.totalCreatorRoyalties)} ETH</p>
+                  <p className="text-xs opacity-90 mt-1">
+                    {hasCustomRoyalty 
+                      ? 'Custom royalty for original creator' 
+                      : '1% royalty'}
+                  </p>
                 </div>
               </div>
 
@@ -166,10 +203,10 @@ export default function OwnershipHistory({ tokenId, onClose }) {
                 <div className="bg-[#F3E8FF] border-2 border-[#D78FEE] rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Palette size={20} className="text-[#9B5DE0]" />
-                    <h3 className="font-bold text-[#4E56C0]">Pembuat Asli NFT</h3>
+                    <h3 className="font-bold text-[#4E56C0]">Original NFT Creator</h3>
                   </div>
                   <p className="text-sm text-gray-700 mb-1">
-                    <strong>Nama:</strong> {artworkInfo.creatorName}
+                    <strong>Name:</strong> {artworkInfo.creatorName}
                   </p>
                   <p className="text-xs font-mono text-gray-600 bg-white px-2 py-1 rounded">
                     {artworkInfo.originalCreator}
@@ -177,7 +214,11 @@ export default function OwnershipHistory({ tokenId, onClose }) {
                   <div className="flex items-center gap-1 mt-2">
                     <TrendingUp size={14} className="text-[#9B5DE0]" />
                     <p className="text-xs text-[#4E56C0]">
-                      Creator mendapat royalty setiap kali NFT ini dijual oleh pemilik lain
+                      {hasCustomRoyalty ? (
+                        <>Creator receives <strong>{royaltyPercentage}%</strong> royalty every time this NFT is sold by another owner</>
+                      ) : (
+                        <>Creator receives automatic <strong>1%</strong> royalty every time this NFT is sold by another owner</>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -222,12 +263,12 @@ export default function OwnershipHistory({ tokenId, onClose }) {
                                 {index === history.length - 1 ? (
                                   <>
                                     <Palette size={14} />
-                                    Pembuat Asli
+                                    Original Creator
                                   </>
                                 ) : index === 0 ? (
                                   <>
                                     <User size={14} />
-                                    Pemilik Saat Ini
+                                    Current Owner
                                   </>
                                 ) : (
                                   <>
@@ -245,7 +286,7 @@ export default function OwnershipHistory({ tokenId, onClose }) {
 
                           {parseFloat(record.price) > 0 && (
                             <div className="text-right">
-                              <p className="text-xs text-gray-600">Harga Jual</p>
+                              <p className="text-xs text-gray-600">Sale Price</p>
                               <p className="font-bold text-[#9B5DE0] text-lg">
                                 {record.price} ETH
                               </p>
@@ -258,7 +299,7 @@ export default function OwnershipHistory({ tokenId, onClose }) {
                           <div className="bg-white rounded-lg p-3 mb-3 space-y-2 border border-gray-200">
                             <div className="flex items-center gap-1 mb-2">
                               <DollarSign size={14} className="text-gray-700" />
-                              <p className="text-xs font-semibold text-gray-700">Distribusi Pembayaran:</p>
+                              <p className="text-xs font-semibold text-gray-700">Payment Distribution:</p>
                             </div>
                             
                             <div className="grid grid-cols-2 gap-2 text-xs">
@@ -271,14 +312,18 @@ export default function OwnershipHistory({ tokenId, onClose }) {
                               
                               {hasRoyalty && (
                                 <div className="bg-[#FDF4FF] border border-[#D78FEE] rounded px-2 py-1">
-                                  <p className="text-[#D78FEE] font-medium">Creator Royalty (1%)</p>
+                                  <p className="text-[#D78FEE] font-medium">
+                                    Creator Royalty {hasCustomRoyalty && `(${royaltyPercentage}%)`}
+                                  </p>
                                   <p className="font-bold text-[#9B5DE0]">{formatEth(record.creatorRoyalty)} ETH</p>
                                 </div>
                               )}
                               
                               {parseFloat(record.price) > 0 && (
                                 <div className="bg-[#E8EEFF] border border-[#4E56C0] rounded px-2 py-1 col-span-2">
-                                  <p className="text-[#4E56C0] font-medium">Seller Received (98%)</p>
+                                  <p className="text-[#4E56C0] font-medium">
+                                    Seller Received ({hasCustomRoyalty ? (99 - royaltyPercentage).toFixed(1) : '98'}%)
+                                  </p>
                                   <p className="font-bold text-[#9B5DE0]">
                                     {formatEth(
                                       parseFloat(record.price) - 
@@ -302,7 +347,7 @@ export default function OwnershipHistory({ tokenId, onClose }) {
                             <div className="flex items-start gap-1">
                               <TrendingUp size={14} className="text-[#9B5DE0] mt-0.5 flex-shrink-0" />
                               <p className="text-xs text-gray-600">
-                                Ini adalah alamat wallet pembuat asli NFT. Informasi ini tercatat permanen di blockchain.
+                                This is the wallet address of the original NFT creator. This information is permanently recorded on the blockchain.
                               </p>
                             </div>
                           </div>
@@ -317,7 +362,7 @@ export default function OwnershipHistory({ tokenId, onClose }) {
               <div className="bg-[#4E56C0] rounded-lg p-4 text-white">
                 <div className="flex items-center justify-center gap-2 mb-3">
                   <TrendingUp size={20} />
-                  <h3 className="font-bold text-center">Ringkasan Keseluruhan</h3>
+                  <h3 className="font-bold text-center">Overall Summary</h3>
                 </div>
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
@@ -328,7 +373,7 @@ export default function OwnershipHistory({ tokenId, onClose }) {
                     <p className="text-2xl font-bold">
                       {history.filter(r => parseFloat(r.price) > 0).length}
                     </p>
-                    <p className="text-xs opacity-90">Transaksi Jual</p>
+                    <p className="text-xs opacity-90">Sales Transactions</p>
                   </div>
                   <div>
                     <p className="text-2xl font-bold">
