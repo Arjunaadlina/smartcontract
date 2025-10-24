@@ -277,6 +277,18 @@ export default function Navbar() {
             </li>
             <li>
               <Link 
+                href="/auction" 
+                className={`block py-2 px-3 md:p-0 rounded ${
+                  isActive('/auction') 
+                    ? 'text-white bg-[#4E56C0] md:bg-transparent md:text-[#4E56C0]' 
+                    : 'text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-[#4E56C0]'
+                }`}
+              >
+                Auction
+              </Link>
+            </li>
+            <li>
+              <Link 
                 href="/profile" 
                 className={`block py-2 px-3 md:p-0 rounded ${
                   isActive('/profile') 
@@ -287,6 +299,7 @@ export default function Navbar() {
                 Profile
               </Link>
             </li>
+            
           </ul>
         </div>
       </div>

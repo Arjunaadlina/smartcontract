@@ -1,11 +1,12 @@
-// NFTCard.tsx - Simplified & Elegant Card with Detail Modal
+// NFTCard.tsx - Dengan Auction Integration
 'use client';
 
 import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from '@/lib/contract';
 import OwnershipHistory from './OwnershipHistory';
-import { History, LinkIcon } from 'lucide-react';
+import { CreateAuctionModal, BidModal, EndAuctionButton } from './AuctionModals';
+import { History, LinkIcon, Gavel, Timer } from 'lucide-react';
 
 const IPFS_GATEWAY = 'https://gateway.pinata.cloud/ipfs/';
 
@@ -18,6 +19,12 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
   const [imageUrl, setImageUrl] = useState('');
   const [metadata, setMetadata] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  // Auction states
+  const [showCreateAuction, setShowCreateAuction] = useState(false);
+  const [showBidModal, setShowBidModal] = useState(false);
+  const [auctionInfo, setAuctionInfo] = useState(null);
+  const [loadingAuction, setLoadingAuction] = useState(false);
 
   const isOwner = nft.currentOwner.toLowerCase() === currentAccount.toLowerCase();
 
@@ -56,6 +63,42 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
     };
     loadMetadata();
   }, [nft.tokenURI]);
+
+  // Load auction info
+  useEffect(() => {
+    if (currentAccount) {
+      loadAuctionInfo();
+    }
+  }, [nft.tokenId, currentAccount]);
+
+  const loadAuctionInfo = async () => {
+    try {
+      setLoadingAuction(true);
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+      
+      const info = await contract.getAuctionInfo(nft.tokenId);
+      
+      if (info.active) {
+        setAuctionInfo({
+          seller: info.seller,
+          startPrice: info.startPrice,
+          currentBid: info.currentBid,
+          highestBidder: info.highestBidder,
+          endTime: Number(info.endTime),
+          active: info.active,
+          timeRemaining: Number(info.timeRemaining)
+        });
+      } else {
+        setAuctionInfo(null);
+      }
+    } catch (error) {
+      console.error('Error loading auction info:', error);
+      setAuctionInfo(null);
+    } finally {
+      setLoadingAuction(false);
+    }
+  };
 
   const buyNFT = async () => {
     setBuying(true);
@@ -123,6 +166,28 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
     setListing(false);
   };
 
+  const cancelAuction = async () => {
+    if (!window.confirm('Yakin ingin membatalkan auction? Ini hanya bisa dilakukan jika belum ada bid.')) {
+      return;
+    }
+
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+
+      const tx = await contract.cancelAuction(nft.tokenId, { gasLimit: 300000 });
+      await tx.wait();
+      
+      alert('✅ Auction berhasil dibatalkan!');
+      loadAuctionInfo();
+      onUpdate();
+    } catch (error) {
+      console.error('Error canceling auction:', error);
+      alert('Gagal membatalkan auction: ' + (error.message || 'Unknown error'));
+    }
+  };
+
   const formatDate = (timestamp) => {
     return new Date(timestamp * 1000).toLocaleDateString('id-ID', {
       year: 'numeric',
@@ -130,6 +195,15 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
       day: 'numeric'
     });
   };
+
+  const formatTimeRemaining = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return `${hours}h ${minutes}m`;
+  };
+
+  const isAuctionEnded = auctionInfo && auctionInfo.timeRemaining <= 0;
+  const hasActiveBids = auctionInfo && auctionInfo.currentBid > 0;
 
   return (
     <>
@@ -160,7 +234,12 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
           )}
           
           {/* Status Badge */}
-          {nft.isForSale && (
+          {auctionInfo?.active ? (
+            <div className="absolute top-3 right-3 bg-gradient-to-r from-[#9B5DE0] to-[#4E56C0] text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg flex items-center gap-1">
+              <Gavel className="w-3 h-3" />
+              On Auction
+            </div>
+          ) : nft.isForSale && (
             <div className="absolute top-3 right-3 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg">
               For Sale
             </div>
@@ -173,7 +252,14 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
             <h3 className="font-bold text-lg truncate">
               {metadata?.name || `NFT #${nft.tokenId}`}
             </h3>
-            {nft.isForSale && (
+            {auctionInfo?.active ? (
+              <span className="text-[#9B5DE0] font-bold whitespace-nowrap ml-2 text-sm">
+                {hasActiveBids 
+                  ? `${ethers.formatEther(auctionInfo.currentBid)} ETH`
+                  : `${ethers.formatEther(auctionInfo.startPrice)} ETH`
+                }
+              </span>
+            ) : nft.isForSale && (
               <span className="text-purple-600 font-bold whitespace-nowrap ml-2">
                 {nft.currentPrice} ETH
               </span>
@@ -184,6 +270,16 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
             <div className="w-6 h-6 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full"></div>
             <span className="truncate">{nft.creatorName}</span>
           </div>
+
+          {/* Auction Timer */}
+          {auctionInfo?.active && (
+            <div className="mt-2 flex items-center gap-1 text-xs text-[#9B5DE0]">
+              <Timer className="w-3 h-3" />
+              <span className="font-semibold">
+                {isAuctionEnded ? 'Ended' : formatTimeRemaining(auctionInfo.timeRemaining)}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -228,7 +324,12 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
                     {metadata?.name || `Artwork #${nft.tokenId}`}
                   </h1>
                   
-                  {isOwner ? (
+                  {auctionInfo?.active ? (
+                    <div className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-50 to-indigo-50 text-[#9B5DE0] px-4 py-2 rounded-full text-sm font-semibold border border-purple-200">
+                      <Gavel className="w-4 h-4" />
+                      <span>Active Auction</span>
+                    </div>
+                  ) : isOwner ? (
                     <div className="inline-flex items-center gap-2 bg-purple-50 text-purple-700 px-4 py-2 rounded-full text-sm font-semibold">
                       <span>👑</span>
                       <span>You own this NFT</span>
@@ -253,8 +354,49 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
                   </div>
                 )}
 
-                {/* Price Section */}
-                {nft.isForSale && (
+                {/* Auction Info Section */}
+                {auctionInfo?.active && (
+                  <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl p-6 mb-6 border border-purple-200">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Gavel className="w-5 h-5 text-[#9B5DE0]" />
+                      <h3 className="font-bold text-lg text-[#4E56C0]">Auction Details</h3>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Starting Price</span>
+                        <span className="font-semibold">{ethers.formatEther(auctionInfo.startPrice)} ETH</span>
+                      </div>
+                      
+                      {hasActiveBids && (
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-sm text-gray-600">Current Bid</span>
+                            <span className="font-bold text-[#9B5DE0] text-lg">
+                              {ethers.formatEther(auctionInfo.currentBid)} ETH
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm text-gray-600">Highest Bidder</span>
+                            <span className="font-mono text-xs">
+                              {auctionInfo.highestBidder.substring(0, 6)}...{auctionInfo.highestBidder.substring(38)}
+                            </span>
+                          </div>
+                        </>
+                      )}
+                      
+                      <div className="flex justify-between items-center pt-2 border-t border-purple-200">
+                        <span className="text-sm text-gray-600">Time Remaining</span>
+                        <span className={`font-bold ${isAuctionEnded ? 'text-red-600' : 'text-[#9B5DE0]'}`}>
+                          {isAuctionEnded ? '🔴 Ended' : `⏰ ${formatTimeRemaining(auctionInfo.timeRemaining)}`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Regular Price Section */}
+                {!auctionInfo?.active && nft.isForSale && (
                   <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 mb-6">
                     <div className="text-sm text-gray-600 mb-1">Current Price</div>
                     <div className="text-3xl font-bold text-purple-600">{nft.currentPrice} ETH</div>
@@ -296,30 +438,93 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
 
                 {/* Action Buttons */}
                 <div className="space-y-3 mb-6">
-                  {isOwner ? (
+                  {auctionInfo?.active ? (
+                    // Auction Active State
+                    <>
+                      {isOwner ? (
+                        // Owner controls
+                        <div className="space-y-3">
+                          {isAuctionEnded ? (
+                            <EndAuctionButton 
+                              tokenId={nft.tokenId}
+                              onSuccess={() => {
+                                loadAuctionInfo();
+                                onUpdate();
+                              }}
+                            />
+                          ) : !hasActiveBids ? (
+                            <button
+                              onClick={cancelAuction}
+                              className="w-full bg-red-500 text-white py-4 rounded-xl font-semibold hover:bg-red-600 transition-colors"
+                            >
+                              Cancel Auction
+                            </button>
+                          ) : (
+                            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-700">
+                              <strong>ℹ️ Info:</strong> Auction tidak bisa dibatalkan karena sudah ada bid. Tunggu hingga auction berakhir.
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        // Non-owner (bidders)
+                        <>
+                          {!isAuctionEnded ? (
+                            <button
+                              onClick={() => setShowBidModal(true)}
+                              className="w-full bg-gradient-to-r from-[#9B5DE0] to-[#4E56C0] text-white py-4 rounded-xl font-semibold hover:shadow-lg transition-all transform hover:scale-105 flex items-center justify-center gap-2"
+                            >
+                              <Gavel className="w-5 h-5" />
+                              Place Bid
+                            </button>
+                          ) : (
+                            <EndAuctionButton 
+                              tokenId={nft.tokenId}
+                              onSuccess={() => {
+                                loadAuctionInfo();
+                                onUpdate();
+                              }}
+                            />
+                          )}
+                        </>
+                      )}
+                    </>
+                  ) : isOwner ? (
+                    // Owner controls (no active auction)
                     <>
                       {!nft.isForSale ? (
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Set Price (ETH)
-                          </label>
-                          <div className="flex gap-2">
-                            <input
-                              type="number"
-                              step="0.001"
-                              placeholder="0.00"
-                              value={newPrice}
-                              onChange={(e) => setNewPrice(e.target.value)}
-                              className="flex-1 border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-purple-500 focus:outline-none"
-                            />
-                            <button
-                              onClick={listForSale}
-                              disabled={listing}
-                              className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50"
-                            >
-                              {listing ? '...' : 'List'}
-                            </button>
+                        <div className="space-y-3">
+                          {/* List for Sale */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Set Price (ETH)
+                            </label>
+                            <div className="flex gap-2">
+                              <input
+                                type="number"
+                                step="0.001"
+                                placeholder="0.00"
+                                value={newPrice}
+                                onChange={(e) => setNewPrice(e.target.value)}
+                                className="flex-1 border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-purple-500 focus:outline-none"
+                              />
+                              <button
+                                onClick={listForSale}
+                                disabled={listing}
+                                className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50"
+                              >
+                                {listing ? '...' : 'List'}
+                              </button>
+                            </div>
                           </div>
+
+                          {/* Create Auction Button */}
+                          <button
+                            onClick={() => setShowCreateAuction(true)}
+                            className="w-full bg-gradient-to-r from-[#9B5DE0] to-[#D78FEE] text-white py-4 rounded-xl font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                          >
+                            <Gavel className="w-5 h-5" />
+                            Create Auction
+                          </button>
                         </div>
                       ) : (
                         <button
@@ -332,6 +537,7 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
                       )}
                     </>
                   ) : nft.isForSale ? (
+                    // Non-owner buying
                     <button
                       onClick={buyNFT}
                       disabled={buying}
@@ -345,9 +551,8 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
                     onClick={() => setShowHistory(true)}
                     className="flex justify-center items-center gap-2 w-full border-2 border-gray-300 text-gray-700 py-4 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
                   >
-                  <History className="text-black bg-white rounded-full p-1 w-7 h-7" />
-                  <p>View Ownership History</p>
-                    
+                    <History className="text-black bg-white rounded-full p-1 w-7 h-7" />
+                    <p>View Ownership History</p>
                   </button>
 
                   <a
@@ -366,11 +571,37 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
         </div>
       )}
 
-      {/* Ownership History Modal */}
+      {/* Modals */}
       {showHistory && (
         <OwnershipHistory
           tokenId={nft.tokenId}
           onClose={() => setShowHistory(false)}
+        />
+      )}
+
+      {showCreateAuction && (
+        <CreateAuctionModal
+          tokenId={nft.tokenId}
+          onClose={() => setShowCreateAuction(false)}
+          onSuccess={() => {
+            setShowCreateAuction(false);
+            loadAuctionInfo();
+            onUpdate();
+          }}
+          account={currentAccount}
+        />
+      )}
+
+      {showBidModal && auctionInfo && (
+        <BidModal
+          tokenId={nft.tokenId}
+          auctionInfo={auctionInfo}
+          onClose={() => setShowBidModal(false)}
+          onSuccess={() => {
+            setShowBidModal(false);
+            loadAuctionInfo();
+            onUpdate();
+          }}
         />
       )}
     </>

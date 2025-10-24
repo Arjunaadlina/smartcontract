@@ -5,33 +5,26 @@ import { ethers } from 'ethers';
 import NFTCard from '@/components/NFTCards';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from '@/lib/contract';
 import Image from 'next/image';
-import { ImageIcon, RefreshCcw } from 'lucide-react';
+import { Gavel, RefreshCcw, Timer } from 'lucide-react';
 
 const SEPOLIA_CHAIN_ID = '0xaa36a7';
 const SEPOLIA_CHAIN_ID_DECIMAL = 11155111;
 
-export default function Marketplace() {
+export default function AuctionPage() {
   const [account, setAccount] = useState('');
-  const [nfts, setNfts] = useState([]);
+  const [auctions, setAuctions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [networkError, setNetworkError] = useState('');
-  const [selectedNFT, setSelectedNFT] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     checkWalletConnection();
     
     if (typeof window.ethereum !== 'undefined') {
-      window.ethereum.on('chainChanged', (chainId) => {
-        window.location.reload();
-      });
-      
+      window.ethereum.on('chainChanged', () => window.location.reload());
       window.ethereum.on('accountsChanged', (accounts) => {
-        if (accounts.length > 0) {
-          setAccount(accounts[0]);
-        } else {
-          setAccount('');
-        }
+        if (accounts.length > 0) setAccount(accounts[0]);
+        else setAccount('');
       });
     }
 
@@ -45,11 +38,11 @@ export default function Marketplace() {
 
   useEffect(() => {
     if (account) {
-      loadNFTs();
+      loadAuctions();
     }
   }, [account]);
 
-  // Listen to smart contract events untuk real-time updates
+  // Listen to auction events
   useEffect(() => {
     if (!account || typeof window.ethereum === 'undefined') return;
 
@@ -58,41 +51,19 @@ export default function Marketplace() {
         const provider = new ethers.BrowserProvider(window.ethereum);
         const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
 
-        // Listen untuk event listing/unlisting
-        contract.on('ArtworkListedForSale', (tokenId, price) => {
-          console.log('🟢 NFT Listed:', tokenId.toString());
-          loadNFTs();
-        });
-
-        contract.on('ArtworkUnlisted', (tokenId) => {
-          console.log('🔴 NFT Unlisted:', tokenId.toString());
-          loadNFTs();
-        });
-
-        contract.on('ArtworkSold', (tokenId, from, to, price) => {
-          console.log('💰 NFT Sold:', tokenId.toString());
-          loadNFTs();
-        });
-
-        contract.on('ArtworkMinted', (tokenId, creator, creatorName, tokenURI, price) => {
-          console.log('✨ NFT Minted:', tokenId.toString());
-          loadNFTs();
-        });
-
-        // ✅ TAMBAHAN: Listen untuk auction events
-        contract.on('AuctionCreated', (tokenId, seller, startPrice, endTime) => {
+        contract.on('AuctionCreated', (tokenId) => {
           console.log('🔨 Auction Created:', tokenId.toString());
-          loadNFTs(); // Refresh untuk remove dari marketplace
+          loadAuctions();
         });
 
-        contract.on('AuctionEnded', (tokenId, winner, finalPrice) => {
+        contract.on('BidPlaced', (tokenId) => {
+          console.log('💰 Bid Placed:', tokenId.toString());
+          loadAuctions();
+        });
+
+        contract.on('AuctionEnded', (tokenId) => {
           console.log('✅ Auction Ended:', tokenId.toString());
-          loadNFTs(); // Refresh setelah auction selesai
-        });
-
-        contract.on('AuctionCancelled', (tokenId) => {
-          console.log('❌ Auction Cancelled:', tokenId.toString());
-          loadNFTs(); // Refresh jika auction dibatalkan
+          loadAuctions();
         });
 
         return () => {
@@ -219,8 +190,7 @@ export default function Marketplace() {
     }
   };
 
-  const loadNFTs = async () => {
-    // Jangan set loading true jika ini auto-refresh
+  const loadAuctions = async () => {
     if (!refreshing) {
       setLoading(true);
     }
@@ -239,54 +209,48 @@ export default function Marketplace() {
       const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
       
       const totalSupply = await contract.getTotalSupply();
-      const nftList = [];
+      const auctionList = [];
 
-      console.log(`📊 Loading ${totalSupply} NFTs from blockchain...`);
+      console.log(`📊 Checking ${totalSupply} NFTs for active auctions...`);
 
       for (let i = 1; i <= Number(totalSupply); i++) {
         try {
           const tokenURI = await contract.tokenURI(i);
           const artworkInfo = await contract.getArtworkInfo(i);
-          
-          // ✅ PENGECEKAN 1: Hanya NFT yang isForSale = true
-          const isForSale = artworkInfo[4];
-          
-          if (!isForSale) {
-            console.log(`NFT #${i}: Skipped (not for sale)`);
-            continue;
-          }
-
-          // ✅ PENGECEKAN 2: Check apakah NFT sedang dalam auction
           const auctionInfo = await contract.getAuctionInfo(i);
-          const isInAuction = auctionInfo.active; // index 5 adalah 'active'
           
-          if (isInAuction) {
-            console.log(`NFT #${i}: Skipped (on auction)`);
-            continue;
+          // Filter: Hanya tampilkan NFT yang sedang di-auction
+          if (auctionInfo.active) {
+            auctionList.push({
+              tokenId: i,
+              tokenURI,
+              originalCreator: artworkInfo[0],
+              creatorName: artworkInfo[1],
+              creationTimestamp: Number(artworkInfo[2]),
+              currentPrice: ethers.formatEther(artworkInfo[3]),
+              isForSale: artworkInfo[4],
+              currentOwner: artworkInfo[5],
+              // Auction specific data
+              auctionActive: true,
+              auctionStartPrice: auctionInfo.startPrice,
+              auctionCurrentBid: auctionInfo.currentBid,
+              auctionHighestBidder: auctionInfo.highestBidder,
+              auctionEndTime: Number(auctionInfo.endTime),
+              auctionTimeRemaining: Number(auctionInfo.timeRemaining)
+            });
           }
-
-          // ✅ Hanya tampilkan jika isForSale = true DAN tidak dalam auction
-          console.log(`NFT #${i}: ✓ Available for direct sale`);
-          
-          nftList.push({
-            tokenId: i,
-            tokenURI,
-            originalCreator: artworkInfo[0],
-            creatorName: artworkInfo[1],
-            creationTimestamp: Number(artworkInfo[2]),
-            currentPrice: ethers.formatEther(artworkInfo[3]),
-            isForSale: artworkInfo[4],
-            currentOwner: artworkInfo[5]
-          });
         } catch (error) {
           console.error(`Error loading NFT ${i}:`, error);
         }
       }
 
-      console.log(`✅ Loaded ${nftList.length} NFTs available for direct sale`);
-      setNfts(nftList);
+      // Sort by time remaining (ending soon first)
+      auctionList.sort((a, b) => a.auctionTimeRemaining - b.auctionTimeRemaining);
+
+      console.log(`✅ Found ${auctionList.length} active auctions`);
+      setAuctions(auctionList);
     } catch (error) {
-      console.error('Error loading NFTs:', error);
+      console.error('Error loading auctions:', error);
     }
     setLoading(false);
     setRefreshing(false);
@@ -295,6 +259,7 @@ export default function Marketplace() {
   return (
     <div className="min-h-screen bg-white">
       <main className="container mx-auto px-4 py-8">
+
         {!account ? (
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center max-w-md">
@@ -302,47 +267,42 @@ export default function Marketplace() {
                 <Image src="/agawayan1.png" alt="Logo" width={200} height={200} />
               </div>
               <p className="text-gray-600 mb-8">
-                Platform NFT marketplace dengan transparansi penuh tentang pembuat asli dan riwayat kepemilikan setiap karya seni digital.
+                Connect your wallet to participate in NFT auctions
               </p>
               <button
                 onClick={connectWallet}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-3 py-3 rounded-xl font-semibold hover:shadow-xl transition-all transform hover:scale-105"
+                className="bg-gradient-to-r from-[#9B5DE0] to-[#4E56C0] text-white px-8 py-3 rounded-xl font-semibold hover:shadow-xl transition-all transform hover:scale-105"
               >
-                Hubungkan Wallet untuk Memulai
+                Connect Wallet
               </button>
               <p className="text-xs text-gray-500 mt-4">
-                * Pastikan MetaMask terhubung ke Sepolia Testnet
+                * Make sure MetaMask is connected to Sepolia Testnet
               </p>
             </div>
           </div>
         ) : loading ? (
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center">
-              <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-purple-600 border-t-transparent mb-4"></div>
-              <p className="text-gray-600">Memuat NFT...</p>
+              <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-[#9B5DE0] border-t-transparent mb-4"></div>
+              <p className="text-gray-600">Loading auctions...</p>
             </div>
           </div>
-        ) : nfts.length === 0 ? (
+        ) : auctions.length === 0 ? (
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center max-w-md">
               <div className="text-8xl mb-6">
-                <ImageIcon className="mx-auto" width={100} height={100} />
+                <Gavel className="mx-auto text-gray-400" width={100} height={100} />
               </div>
-              <h2 className="text-3xl font-bold mb-4">Belum Ada NFT Dijual</h2>
+              <h2 className="text-3xl font-bold mb-4">No Active Auctions</h2>
               <p className="text-gray-600 mb-8">
-                Belum ada NFT yang sedang dijual di marketplace. NFT yang sedang dalam auction tidak ditampilkan di sini.
+                There are no active auctions at the moment. Check back later or create your own auction!
               </p>
-              <div className="space-y-3">
-                <a
-                  href="/profile"
-                  className="inline-block bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all"
-                >
-                  Buat NFT di Profil
-                </a>
-                <div className="text-sm text-gray-500">
-                  atau lihat <a href="/auctions" className="text-purple-600 hover:underline font-semibold">NFT dalam Auction</a>
-                </div>
-              </div>
+              <a
+                href="/profile"
+                className="inline-block bg-gradient-to-r from-[#9B5DE0] to-[#D78FEE] text-white px-8 py-3 rounded-xl font-semibold hover:shadow-xl transition-all"
+              >
+                Create Auction
+              </a>
             </div>
           </div>
         ) : (
@@ -350,12 +310,12 @@ export default function Marketplace() {
             <div className="flex items-center justify-between mb-8">
               <div>
                 <p className="text-gray-600">
-                  {nfts.length} artwork{nfts.length !== 1 ? 's' : ''} available for direct purchase
-                  {refreshing && <span className="ml-2 text-purple-600 animate-pulse">• updating...</span>}
+                  {auctions.length} active auction{auctions.length !== 1 ? 's' : ''}
+                  {refreshing && <span className="ml-2 text-[#9B5DE0] animate-pulse">• updating...</span>}
                 </p>
               </div>
               <button 
-                onClick={loadNFTs}
+                onClick={loadAuctions}
                 disabled={refreshing}
                 className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-50"
               >
@@ -366,18 +326,18 @@ export default function Marketplace() {
               </button>
             </div>
 
-            {/* Bento Grid Layout - Pinterest Style */}
-            <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6">
-              {nfts.map((nft) => (
-                <div key={nft.tokenId} className="break-inside-avoid mb-6">
-                  <NFTCard
-                    nft={nft}
-                    currentAccount={account}
-                    onUpdate={loadNFTs}
-                  />
-                </div>
+            {/* Auction Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {auctions.map((nft) => (
+                <NFTCard
+                  key={nft.tokenId}
+                  nft={nft}
+                  currentAccount={account}
+                  onUpdate={loadAuctions}
+                />
               ))}
             </div>
+
           </>
         )}
       </main>

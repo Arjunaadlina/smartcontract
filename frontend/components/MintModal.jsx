@@ -5,11 +5,12 @@ import { ethers } from 'ethers';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '';
 
-// ABI Contract
+// ABI Contract (updated with V2 compatible functions)
 const CONTRACT_ABI = [
   "function mintArtwork(string memory tokenURI, string memory creatorName, uint256 price) public returns (uint256)",
+  "function mintArtworkWithRoyalty(string memory tokenURI, string memory creatorName, uint256 price, uint256 royaltyPercentage) public returns (uint256)",
   "function getTotalSupply() public view returns (uint256)",
-  "event ArtworkMinted(uint256 indexed tokenId, address indexed creator, string creatorName, string tokenURI, uint256 price)"
+  "event ArtworkMinted(uint256 indexed tokenId, address indexed creator, string creatorName, string tokenURI, uint256 price, uint256 royaltyPercentage)"
 ];
 
 export default function MintModal({ onClose, onSuccess, account }) {
@@ -17,6 +18,7 @@ export default function MintModal({ onClose, onSuccess, account }) {
   const [creatorName, setCreatorName] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
+  const [royaltyPercentage, setRoyaltyPercentage] = useState('5'); // Default 5%
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -131,6 +133,12 @@ export default function MintModal({ onClose, onSuccess, account }) {
       return;
     }
 
+    const royaltyNum = parseFloat(royaltyPercentage);
+    if (isNaN(royaltyNum) || royaltyNum < 0 || royaltyNum > 20) {
+      alert('Royalty harus antara 0-20%');
+      return;
+    }
+
     setMinting(true);
     setUploadProgress('Memulai proses minting...');
 
@@ -154,6 +162,10 @@ export default function MintModal({ onClose, onSuccess, account }) {
           {
             trait_type: "Original Creator Address",
             value: account
+          },
+          {
+            trait_type: "Creator Royalty",
+            value: `${royaltyPercentage}%`
           },
           {
             trait_type: "Creation Date",
@@ -183,17 +195,22 @@ export default function MintModal({ onClose, onSuccess, account }) {
 
       const priceInWei = ethers.parseEther(price || '0');
       
+      // Convert royalty percentage to basis points (1% = 100 basis points)
+      const royaltyBasisPoints = Math.floor(royaltyNum * 100);
+      
       console.log('Minting with params:', {
         tokenURI,
         creatorName,
-        price: priceInWei.toString()
+        price: priceInWei.toString(),
+        royaltyBasisPoints
       });
 
       try {
         const gasEstimate = await contract.mintArtwork.estimateGas(
           tokenURI,
           creatorName,
-          priceInWei
+          priceInWei,
+          royaltyBasisPoints
         );
         console.log('Estimated gas:', gasEstimate.toString());
       } catch (gasError) {
@@ -205,6 +222,7 @@ export default function MintModal({ onClose, onSuccess, account }) {
         tokenURI,
         creatorName,
         priceInWei,
+        royaltyBasisPoints,
         {
           gasLimit: 500000
         }
@@ -217,13 +235,14 @@ export default function MintModal({ onClose, onSuccess, account }) {
       console.log('Transaction confirmed:', receipt);
 
       setUploadProgress('');
-      alert('🎉 NFT berhasil di-mint!\n\nTransaction Hash: ' + tx.hash);
+      alert(`🎉 NFT berhasil di-mint!\n\nRoyalty: ${royaltyPercentage}%\nTransaction Hash: ${tx.hash}`);
       
       // Reset form
       setTitle('');
       setCreatorName('');
       setDescription('');
       setPrice('');
+      setRoyaltyPercentage('5');
       setImageFile(null);
       setImagePreview('');
       
@@ -395,6 +414,64 @@ export default function MintModal({ onClose, onSuccess, account }) {
               </p>
             </div>
 
+            {/* Royalty Percentage - NEW */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Royalty untuk Creator (%) *
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  max="20"
+                  value={royaltyPercentage}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    if (val >= 0 && val <= 20) {
+                      setRoyaltyPercentage(e.target.value);
+                    }
+                  }}
+                  placeholder="5"
+                  disabled={minting}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 pr-12 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">
+                  %
+                </span>
+              </div>
+              
+              {/* Slider untuk UX lebih baik */}
+              <input
+                type="range"
+                min="0"
+                max="20"
+                step="0.5"
+                value={royaltyPercentage}
+                onChange={(e) => setRoyaltyPercentage(e.target.value)}
+                disabled={minting}
+                className="w-full mt-2"
+              />
+              
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>0%</span>
+                <span className="font-semibold text-purple-600">{royaltyPercentage}%</span>
+                <span>20%</span>
+              </div>
+              
+              <div className="mt-2 p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg">
+                <p className="text-xs text-gray-700">
+                  <strong>💰 Royalty Anda:</strong> Setiap kali NFT ini dijual ulang (secondary market), 
+                  Anda akan mendapat <span className="font-bold text-purple-600">{royaltyPercentage}%</span> dari harga jual secara otomatis!
+                </p>
+                {parseFloat(royaltyPercentage) > 0 && (
+                  <p className="text-xs text-gray-600 mt-2">
+                    Contoh: Jika NFT dijual seharga 1 ETH, Anda dapat {(parseFloat(royaltyPercentage) / 100).toFixed(3)} ETH
+                  </p>
+                )}
+              </div>
+            </div>
+
             {/* Creator Address Info */}
             <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4">
               <p className="text-xs text-gray-600 mb-1">Alamat Wallet Anda</p>
@@ -402,27 +479,14 @@ export default function MintModal({ onClose, onSuccess, account }) {
                 {account.substring(0, 10)}...{account.substring(34)}
               </p>
               <p className="text-xs text-gray-500 mt-2">
-                Alamat ini akan tercatat sebagai pembuat asli NFT
+                Alamat ini akan tercatat sebagai pembuat asli NFT dan penerima royalty
               </p>
-            </div>
-
-            {/* Info Box */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-blue-800">
-                <strong>ℹ️ Transparansi Supply Chain:</strong>
-              </p>
-              <ul className="text-xs text-blue-700 mt-2 space-y-1 ml-4">
-                <li>• Gambar disimpan di IPFS (decentralized)</li>
-                <li>• Metadata NFT permanen dan tidak bisa diubah</li>
-                <li>• Nama dan alamat pembuat asli tercatat</li>
-                <li>• Riwayat lengkap kepemilikan tersimpan on-chain</li>
-              </ul>
             </div>
 
             {/* Submit Button */}
             <button
               onClick={handleMint}
-              disabled={minting || uploading || !imageFile || !title || !creatorName || !price}
+              disabled={minting || uploading || !imageFile || !title || !creatorName || !price || !royaltyPercentage}
               className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white py-3 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               {minting ? (
