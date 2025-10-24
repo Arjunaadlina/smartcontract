@@ -158,7 +158,6 @@ export default function OwnershipHistory({ tokenId, onClose }) {
                     <h3 className="font-semibold text-sm">Total Royalty Creator</h3>
                   </div>
                   <p className="text-3xl font-bold">{formatEth(totalStats.totalCreatorRoyalties)} ETH</p>
-                  <p className="text-xs opacity-90 mt-1">Royalty 1% untuk pembuat asli</p>
                 </div>
               </div>
 
