@@ -206,7 +206,7 @@ export default function MintModal({ onClose, onSuccess, account }) {
       });
 
       try {
-        const gasEstimate = await contract.mintArtwork.estimateGas(
+        const gasEstimate = await contract.mintArtworkWithRoyalty.estimateGas(
           tokenURI,
           creatorName,
           priceInWei,
@@ -218,7 +218,7 @@ export default function MintModal({ onClose, onSuccess, account }) {
         throw new Error('Gas estimation failed. Make sure the contract address is correct and you are connected to the right network.');
       }
 
-      const tx = await contract.mintArtwork(
+      const tx = await contract.mintArtworkWithRoyalty(
         tokenURI,
         creatorName,
         priceInWei,
