@@ -1,4 +1,4 @@
-// NFTCard.tsx - Dengan Auction Integration
+// NFTCard.tsx - Dengan Auction Integration (Mobile Optimized)
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -282,59 +282,59 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
         </div>
       </div>
 
-      {/* Detail Modal */}
+      {/* Detail Modal - Mobile Optimized */}
       {showDetail && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-0 md:p-4"
           onClick={() => setShowDetail(false)}
         >
           <div 
-            className="bg-white rounded-3xl max-w-5xl w-full max-h-[90vh] overflow-hidden shadow-2xl"
+            className="bg-white rounded-none md:rounded-3xl max-w-5xl w-full h-full md:h-auto md:max-h-[90vh] overflow-hidden shadow-2xl flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="grid md:grid-cols-2 gap-0">
+            <div className="grid md:grid-cols-2 gap-0 h-full md:h-auto overflow-y-auto">
               {/* Image Section */}
-              <div className="relative bg-gradient-to-br from-purple-100 to-pink-100 md:max-h-[90vh]">
+              <div className="relative bg-gradient-to-br from-purple-100 to-pink-100 min-h-[40vh] md:min-h-0 md:max-h-[90vh] flex-shrink-0">
                 <button
                   onClick={() => setShowDetail(false)}
                   className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/90 backdrop-blur rounded-full shadow-lg flex items-center justify-center hover:bg-white transition-colors"
                 >
                   <span className="text-xl">✕</span>
                 </button>
-                <div className="h-full flex items-center justify-center p-8">
+                <div className="h-full flex items-center justify-center p-4 md:p-8">
                   {imageUrl ? (
                     <img
                       src={imageUrl}
                       alt={metadata?.name || `NFT #${nft.tokenId}`}
-                      className="w-full h-auto max-h-full object-contain rounded-2xl shadow-2xl"
+                      className="w-full h-auto max-h-[35vh] md:max-h-full object-contain rounded-xl md:rounded-2xl shadow-2xl"
                     />
                   ) : (
-                    <div className="text-8xl">🖼️</div>
+                    <div className="text-6xl md:text-8xl">🖼️</div>
                   )}
                 </div>
               </div>
 
               {/* Details Section */}
-              <div className="p-8 overflow-y-auto max-h-[90vh]">
+              <div className="p-4 md:p-8 overflow-y-auto pb-6 md:pb-8">
                 {/* Header */}
-                <div className="mb-6">
-                  <div className="text-sm text-gray-500 mb-2">Token ID #{nft.tokenId}</div>
-                  <h1 className="text-4xl font-bold mb-4">
+                <div className="mb-4 md:mb-6">
+                  <div className="text-xs md:text-sm text-gray-500 mb-2">Token ID #{nft.tokenId}</div>
+                  <h1 className="text-2xl md:text-4xl font-bold mb-3 md:mb-4">
                     {metadata?.name || `Artwork #${nft.tokenId}`}
                   </h1>
                   
                   {auctionInfo?.active ? (
-                    <div className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-50 to-indigo-50 text-[#9B5DE0] px-4 py-2 rounded-full text-sm font-semibold border border-purple-200">
-                      <Gavel className="w-4 h-4" />
+                    <div className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-50 to-indigo-50 text-[#9B5DE0] px-3 md:px-4 py-2 rounded-full text-xs md:text-sm font-semibold border border-purple-200">
+                      <Gavel className="w-3 md:w-4 h-3 md:h-4" />
                       <span>Active Auction</span>
                     </div>
                   ) : isOwner ? (
-                    <div className="inline-flex items-center gap-2 bg-purple-50 text-purple-700 px-4 py-2 rounded-full text-sm font-semibold">
+                    <div className="inline-flex items-center gap-2 bg-purple-50 text-purple-700 px-3 md:px-4 py-2 rounded-full text-xs md:text-sm font-semibold">
                       <span>👑</span>
                       <span>You own this NFT</span>
                     </div>
                   ) : nft.isForSale ? (
-                    <div className="inline-flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-full text-sm font-semibold">
+                    <div className="inline-flex items-center gap-2 bg-green-50 text-green-700 px-3 md:px-4 py-2 rounded-full text-xs md:text-sm font-semibold">
                       <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                       Available for Sale
                     </div>
@@ -344,35 +344,35 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
                 </div>
 
                 {metadata?.description && (
-                  <div className="mb-6">
-                    <div className="text-sm text-gray-500 mb-2">Description</div>
-                    <p className="text-gray-700 leading-relaxed">{metadata.description}</p>
+                  <div className="mb-4 md:mb-6">
+                    <div className="text-xs md:text-sm text-gray-500 mb-2">Description</div>
+                    <p className="text-sm md:text-base text-gray-700 leading-relaxed">{metadata.description}</p>
                   </div>
                 )}
 
                 {auctionInfo?.active && (
-                  <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl p-6 mb-6 border border-purple-200">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Gavel className="w-5 h-5 text-[#9B5DE0]" />
-                      <h3 className="font-bold text-lg text-[#4E56C0]">Auction Details</h3>
+                  <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl md:rounded-2xl p-4 md:p-6 mb-4 md:mb-6 border border-purple-200">
+                    <div className="flex items-center gap-2 mb-3 md:mb-4">
+                      <Gavel className="w-4 md:w-5 h-4 md:h-5 text-[#9B5DE0]" />
+                      <h3 className="font-bold text-base md:text-lg text-[#4E56C0]">Auction Details</h3>
                     </div>
                     
-                    <div className="space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Starting Price</span>
+                    <div className="space-y-2 md:space-y-3">
+                      <div className="flex justify-between text-sm md:text-base">
+                        <span className="text-xs md:text-sm text-gray-600">Starting Price</span>
                         <span className="font-semibold">{ethers.formatEther(auctionInfo.startPrice)} ETH</span>
                       </div>
                       
                       {hasActiveBids && (
                         <>
-                          <div className="flex justify-between">
-                            <span className="text-sm text-gray-600">Current Bid</span>
-                            <span className="font-bold text-[#9B5DE0] text-lg">
+                          <div className="flex justify-between text-sm md:text-base">
+                            <span className="text-xs md:text-sm text-gray-600">Current Bid</span>
+                            <span className="font-bold text-[#9B5DE0] text-base md:text-lg">
                               {ethers.formatEther(auctionInfo.currentBid)} ETH
                             </span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm text-gray-600">Highest Bidder</span>
+                          <div className="flex justify-between text-sm md:text-base">
+                            <span className="text-xs md:text-sm text-gray-600">Highest Bidder</span>
                             <span className="font-mono text-xs">
                               {auctionInfo.highestBidder.substring(0, 6)}...{auctionInfo.highestBidder.substring(38)}
                             </span>
@@ -380,8 +380,8 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
                         </>
                       )}
                       
-                      <div className="flex justify-between items-center pt-2 border-t border-purple-200">
-                        <span className="text-sm text-gray-600">Time Remaining</span>
+                      <div className="flex justify-between items-center pt-2 border-t border-purple-200 text-sm md:text-base">
+                        <span className="text-xs md:text-sm text-gray-600">Time Remaining</span>
                         <span className={`font-bold ${isAuctionEnded ? 'text-red-600' : 'text-[#9B5DE0]'}`}>
                           {isAuctionEnded ? '🔴 Ended' : `⏰ ${formatTimeRemaining(auctionInfo.timeRemaining)}`}
                         </span>
@@ -392,53 +392,53 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
 
                 {/* Regular Price Section */}
                 {!auctionInfo?.active && nft.isForSale && (
-                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 mb-6">
-                    <div className="text-sm text-gray-600 mb-1">Current Price</div>
-                    <div className="text-3xl font-bold text-purple-600">{nft.currentPrice} ETH</div>
+                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl md:rounded-2xl p-4 md:p-6 mb-4 md:mb-6">
+                    <div className="text-xs md:text-sm text-gray-600 mb-1">Current Price</div>
+                    <div className="text-2xl md:text-3xl font-bold text-purple-600">{nft.currentPrice} ETH</div>
                   </div>
                 )}
 
                 {/* Creator & Owner Info */}
-                <div className="space-y-4 mb-6">
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <div className="text-sm text-gray-500 mb-2">Original Creator</div>
+                <div className="space-y-3 md:space-y-4 mb-4 md:mb-6">
+                  <div className="bg-gray-50 rounded-xl p-3 md:p-4">
+                    <div className="text-xs md:text-sm text-gray-500 mb-2">Original Creator</div>
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full"></div>
-                      <div>
-                        <div className="font-semibold">{nft.creatorName}</div>
-                        <div className="text-sm text-gray-500 font-mono">
+                      <div className="w-8 md:w-10 h-8 md:h-10 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex-shrink-0"></div>
+                      <div className="min-w-0">
+                        <div className="font-semibold text-sm md:text-base truncate">{nft.creatorName}</div>
+                        <div className="text-xs md:text-sm text-gray-500 font-mono truncate">
                           {nft.originalCreator.substring(0, 6)}...{nft.originalCreator.substring(38)}
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <div className="text-sm text-gray-500 mb-2">Current Owner</div>
+                  <div className="bg-gray-50 rounded-xl p-3 md:p-4">
+                    <div className="text-xs md:text-sm text-gray-500 mb-2">Current Owner</div>
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full"></div>
-                      <div className="flex-1">
-                        <div className="font-mono text-sm">
+                      <div className="w-8 md:w-10 h-8 md:h-10 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full flex-shrink-0"></div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-mono text-xs md:text-sm truncate">
                           {nft.currentOwner.substring(0, 6)}...{nft.currentOwner.substring(38)}
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <div className="text-sm text-gray-500 mb-1">Created</div>
-                    <div className="font-medium">{formatDate(nft.creationTimestamp)}</div>
+                  <div className="bg-gray-50 rounded-xl p-3 md:p-4">
+                    <div className="text-xs md:text-sm text-gray-500 mb-1">Created</div>
+                    <div className="font-medium text-sm md:text-base">{formatDate(nft.creationTimestamp)}</div>
                   </div>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="space-y-3 mb-6">
+                <div className="space-y-2 md:space-y-3 mb-4 md:mb-6">
                   {auctionInfo?.active ? (
                     // Auction Active State
                     <>
                       {isOwner ? (
                         // Owner controls
-                        <div className="space-y-3">
+                        <div className="space-y-2 md:space-y-3">
                           {isAuctionEnded ? (
                             <EndAuctionButton 
                               tokenId={nft.tokenId}
@@ -450,12 +450,12 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
                           ) : !hasActiveBids ? (
                             <button
                               onClick={cancelAuction}
-                              className="w-full bg-red-500 text-white py-4 rounded-xl font-semibold hover:bg-red-600 transition-colors"
+                              className="w-full bg-red-500 text-white py-3 md:py-4 rounded-xl font-semibold hover:bg-red-600 transition-colors text-sm md:text-base"
                             >
                               Cancel Auction
                             </button>
                           ) : (
-                            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-700">
+                            <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 md:p-4 text-xs md:text-sm text-blue-700">
                               <strong>ℹ️ Info:</strong> Auction tidak bisa dibatalkan karena sudah ada bid. Tunggu hingga auction berakhir.
                             </div>
                           )}
@@ -466,9 +466,9 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
                           {!isAuctionEnded ? (
                             <button
                               onClick={() => setShowBidModal(true)}
-                              className="w-full bg-gradient-to-r from-[#9B5DE0] to-[#4E56C0] text-white py-4 rounded-xl font-semibold hover:shadow-lg transition-all transform hover:scale-105 flex items-center justify-center gap-2"
+                              className="w-full bg-gradient-to-r from-[#9B5DE0] to-[#4E56C0] text-white py-3 md:py-4 rounded-xl font-semibold hover:shadow-lg transition-all transform hover:scale-105 flex items-center justify-center gap-2 text-sm md:text-base"
                             >
-                              <Gavel className="w-5 h-5" />
+                              <Gavel className="w-4 md:w-5 h-4 md:h-5" />
                               Place Bid
                             </button>
                           ) : (
@@ -487,10 +487,10 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
                     // Owner controls (no active auction)
                     <>
                       {!nft.isForSale ? (
-                        <div className="space-y-3">
+                        <div className="space-y-2 md:space-y-3">
                           {/* List for Sale */}
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-xs md:text-sm font-medium text-gray-700 mb-2">
                               Set Price (ETH)
                             </label>
                             <div className="flex gap-2">
@@ -500,12 +500,12 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
                                 placeholder="0.00"
                                 value={newPrice}
                                 onChange={(e) => setNewPrice(e.target.value)}
-                                className="flex-1 border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-purple-500 focus:outline-none"
+                                className="flex-1 border-2 border-gray-200 rounded-xl px-3 md:px-4 py-2 md:py-3 focus:border-purple-500 focus:outline-none text-sm md:text-base"
                               />
                               <button
                                 onClick={listForSale}
                                 disabled={listing}
-                                className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50"
+                                className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 md:px-6 py-2 md:py-3 rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50 text-sm md:text-base"
                               >
                                 {listing ? '...' : 'List'}
                               </button>
@@ -515,9 +515,9 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
                           {/* Create Auction Button */}
                           <button
                             onClick={() => setShowCreateAuction(true)}
-                            className="w-full bg-gradient-to-r from-[#9B5DE0] to-[#D78FEE] text-white py-4 rounded-xl font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                            className="w-full bg-gradient-to-r from-[#9B5DE0] to-[#D78FEE] text-white py-3 md:py-4 rounded-xl font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2 text-sm md:text-base"
                           >
-                            <Gavel className="w-5 h-5" />
+                            <Gavel className="w-4 md:w-5 h-4 md:h-5" />
                             Create Auction
                           </button>
                         </div>
@@ -525,7 +525,7 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
                         <button
                           onClick={unlistFromSale}
                           disabled={listing}
-                          className="w-full bg-red-500 text-white py-4 rounded-xl font-semibold hover:bg-red-600 transition-colors disabled:opacity-50"
+                          className="w-full bg-red-500 text-white py-3 md:py-4 rounded-xl font-semibold hover:bg-red-600 transition-colors disabled:opacity-50 text-sm md:text-base"
                         >
                           {listing ? 'Processing...' : 'Remove from Sale'}
                         </button>
@@ -536,7 +536,7 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
                     <button
                       onClick={buyNFT}
                       disabled={buying}
-                      className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 rounded-xl font-semibold hover:shadow-lg transition-all transform hover:scale-105 disabled:opacity-50"
+                      className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 md:py-4 rounded-xl font-semibold hover:shadow-lg transition-all transform hover:scale-105 disabled:opacity-50 text-sm md:text-base"
                     >
                       {buying ? 'Processing...' : `Buy Now for ${nft.currentPrice} ETH`}
                     </button>
@@ -544,9 +544,9 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
 
                   <button
                     onClick={() => setShowHistory(true)}
-                    className="flex justify-center items-center gap-2 w-full border-2 border-gray-300 text-gray-700 py-4 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                    className="flex justify-center items-center gap-2 w-full border-2 border-gray-300 text-gray-700 py-3 md:py-4 rounded-xl font-semibold hover:bg-gray-50 transition-colors text-sm md:text-base"
                   >
-                    <History className="text-black bg-white rounded-full p-1 w-7 h-7" />
+                    <History className="text-black bg-white rounded-full p-1 w-6 md:w-7 h-6 md:h-7" />
                     <p>View Ownership History</p>
                   </button>
 
@@ -554,9 +554,9 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
                     href={convertIpfsUrl(nft.tokenURI)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex justify-center items-center gap-2 block w-full text-center border-2 border-gray-300 text-gray-700 py-4 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                    className="flex justify-center items-center gap-2 w-full text-center border-2 border-gray-300 text-gray-700 py-3 md:py-4 rounded-xl font-semibold hover:bg-gray-50 transition-colors text-sm md:text-base"
                   >
-                    <LinkIcon className="text-black bg-white rounded-full p-1 w-7 h-7" />
+                    <LinkIcon className="text-black bg-white rounded-full p-1 w-6 md:w-7 h-6 md:h-7" />
                     <p>View on IPFS</p>
                   </a>
                 </div>

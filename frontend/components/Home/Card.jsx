@@ -5,7 +5,7 @@ import { ArrowUpRight } from "lucide-react";
 
 export default function NFTMarketCards() {
   return (
-    <div className="flex flex-col md:flex-row justify-center items-center gap-6 p-6">
+    <div className="flex flex-col md:flex-row justify-center items-center gap-6 px-6">
       {/* Left Card */}
       <div className="h-96 relative bg-white rounded-2xl overflow-hidden w-full md:w-1/2 shadow-lg">
         <div className="absolute inset-0 bg-opacity-40">
