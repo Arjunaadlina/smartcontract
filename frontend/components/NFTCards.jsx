@@ -339,13 +339,10 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
                       Available for Sale
                     </div>
                   ) : (
-                    <div className="inline-flex items-center gap-2 bg-gray-100 text-gray-600 px-4 py-2 rounded-full text-sm font-semibold">
-                      Not for Sale
-                    </div>
+                    null
                   )}
                 </div>
 
-                {/* Description */}
                 {metadata?.description && (
                   <div className="mb-6">
                     <div className="text-sm text-gray-500 mb-2">Description</div>
@@ -353,7 +350,6 @@ export default function NFTCard({ nft, currentAccount, onUpdate }) {
                   </div>
                 )}
 
-                {/* Auction Info Section */}
                 {auctionInfo?.active && (
                   <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl p-6 mb-6 border border-purple-200">
                     <div className="flex items-center gap-2 mb-4">
