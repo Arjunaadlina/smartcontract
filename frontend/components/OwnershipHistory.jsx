@@ -177,7 +177,7 @@ export default function OwnershipHistory({ tokenId, onClose }) {
                   <div className="flex items-center gap-1 mt-2">
                     <TrendingUp size={14} className="text-[#9B5DE0]" />
                     <p className="text-xs text-[#4E56C0]">
-                      Creator mendapat royalty 1% setiap kali NFT ini dijual oleh pemilik lain
+                      Creator mendapat royalty setiap kali NFT ini dijual oleh pemilik lain
                     </p>
                   </div>
                 </div>
